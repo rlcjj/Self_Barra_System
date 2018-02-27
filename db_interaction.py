@@ -14,6 +14,33 @@ from sqlalchemy.types import VARCHAR
 import numpy as np
 import pandas as pd
 
+'''
+------目录------
+insert_df_replace(table_name, data_df, index_name_list = [])
+    --- 针对DataFrame类数据，以创建型方式向某数据表中插入，即每次创建新的表并插入
+insert_df_afresh(table_name, data_df, index_name_list = [])
+    --- 针对DataFrame类数据，以擦除型方式向某数据表中插入，即每次先清空再重新插入
+insert_df_commonly(table_name, data_df, index_name_list = [], attribute_name_list = [])
+    --- 针对DataFrame类数据，以通用型方式向某数据表中插入，即有重复的，则更新columns里对应的数据
+insert_attributes_afresh(table_name, value_list, attribute_list)
+    --- 以擦除型方式向某数据表中插入一些数据，即每次先清空再重新插入
+insert_attributes_commonly(table_name, value_list, attribute_list, update_list, batch = 100000)
+    --- 以通用型方式向某数据表中插入一些数据
+get_data_list(table_name, data_attri_list, keep_none = 0, keep_datetime = 0, keep_unicode = 0)
+    --- list型获取数据的方式，指定一定维度的数据，返回一个包含这些数据的list，每个小list为对应一条数据
+get_data_commonly(table_name, data_attri_list, key_attri_list, keep_none = 0, keep_datetime = 0, keep_unicode = 0)
+    --- 通用型获取数据的方式，指定一定维度的数据，一定维度的key，则返回一个对应key的dict，每小项为对应数据
+get_data_df(table_name, data_attri_list, key_attri_list, dt_to_str = 1)
+    --- 使用dataframe型获取数据的方式，指定一定维度的数据，一定维度的key，则返回一个对应multi-index的df
+get_daily_stock_list(date, forbid_list)
+    --- 从state中找出符合要求的股票代码列表
+get_daily_data_dict(start_date, end_date, table_name, attribute_list, stock_list = [], is_str = 0, to_df = 0)
+    --- 从各股数据表中找出特定股票的一定长度的特定数据，以股票代码和日期两维数据作key
+get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, stock_list = [], is_str = 0, date_for_key = 0)
+    --- 从各股数据表中找出特定股票的一定长度的特定数据，以一维作key，另一维则放在key所指向的内容第一项
+get_daily_data_df(start_date, end_date, table_name, attribute_list, stock_list = [], dt_to_str = 1)
+    --- 这个函数是以DataFrame格式取出时间序列数据，以股票代码和日期两维数据作multi-index
+'''
 
 '''
 ***以下为基本函数与类***
@@ -164,6 +191,33 @@ def find_df_text_index(df_data):
     else:
         print "We don't know this type of DataFrame.Index!"
     return text_index_list
+
+'''这个函数是用来转换df日期序列格式的'''
+def change_df_date_format(origin_data):
+    #以下给Indexes中的dt改正格式
+    if type(origin_data.index) == pd.core.indexes.multi.MultiIndex:
+        length = len(origin_data.index.levels)
+        i = 0
+        while i < length:
+            if isinstance(origin_data.index.levels[i][0], pd._libs.tslib.Timestamp) == True:
+                origin_data.index = origin_data.index.set_levels(origin_data.index.levels[i].strftime('%Y%m%d'), level = i)
+            i += 1
+    elif type(origin_data.index) == pd.core.indexes.base.Index:
+        if isinstance(origin_data.index[0], pd._libs.tslib.Timestamp) == True:
+            origin_data.index = origin_data.index.dt.strftime('%Y%m%d')
+    elif type(origin_data.index) == pd.core.indexes.range.RangeIndex:
+        pass
+    elif type(origin_data.index) == pd.core.indexes.datetimes.DatetimeIndex:
+        origin_data.index = origin_data.index.strftime('%Y%m%d')
+    else:
+        pass
+    
+    #以下给Columns中的dt改正格式
+    for column in origin_data.columns:
+        if isinstance(origin_data[column][0], pd._libs.tslib.Timestamp) == True:
+            origin_data[column] = origin_data[column].dt.strftime('%Y%m%d')
+    
+    return origin_data
 
 '''
 ***以下为数据库插入操作***
@@ -506,10 +560,12 @@ def get_data_commonly(table_name, data_attri_list, key_attri_list, keep_none = 0
 
 '''这个函数是使用dataframe型获取数据的方式，指定一定维度的数据，一定维度的key，则返回一个对应multi-index的df'''
 '''默认将所有datetime类、unicode、None均保留'''
-def get_data_dataframe(table_name, data_attri_list, key_attri_list):
+def get_data_df(table_name, data_attri_list, key_attri_list, dt_to_str = 1):
     engine_str = df_get_engine('sql_myhost.txt')
     engine = create_engine(engine_str)
     data_df = pd.read_sql_table(table_name, engine, index_col = key_attri_list, columns = data_attri_list)
+    if dt_to_str == 1:
+        data_df = change_df_date_format(data_df)
     return data_df
 
 '''这个函数是从state中找出符合要求的股票代码列表'''
@@ -639,6 +695,25 @@ def get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, 
                 j += 1
             data_dict[str(line[1].strftime('%Y%m%d'))].append(daily_data)
     return data_dict
+
+'''这个函数是以DataFrame格式取出时间序列数据'''
+'''以股票代码和日期两维数据作multi-index'''
+'''可以不填写股票代码，则默认取出全部符合条件的股票'''
+def get_daily_data_df(start_date, end_date, table_name, attribute_list, stock_list = [], dt_to_str = 1):
+    attribute_str = get_attribute_str(attribute_list)
+    stock_str = get_stock_str(stock_list)
+    if len(stock_list) == 0:
+        str1="select stock_id, curr_date, " + attribute_str + " from " + table_name + " \
+            where curr_date >= '%s' and curr_date <= '%s'" %(start_date, end_date)
+    else:
+        str1="select stock_id, curr_date, " + attribute_str + " from " + table_name + " \
+            where curr_date >= '%s' and curr_date <= '%s' and stock_id in %s" %(start_date, end_date, stock_str)
+    engine_str = df_get_engine('sql_myhost.txt')
+    engine = create_engine(engine_str)
+    data_df = pd.read_sql(str1, engine, index_col = ["stock_id", "curr_date"], columns = attribute_list)
+    if dt_to_str == 1:
+        data_df = change_df_date_format(data_df)
+    return data_df
 
 '''以下为已经停止使用的部分函数'''
 '''------------------------------------------------------------'''

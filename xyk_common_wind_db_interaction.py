@@ -6,8 +6,8 @@ Created on Thu Dec 15 20:40:02 2016
 """
 
 import xyk_common_data_processing
-import common
-reload(common)
+import os
+import MySQLdb
 
 '''
 ------目录------
@@ -30,13 +30,48 @@ get_all_stock_Income_ttm_data(date, field) --- 获取所有股票的利润表所
 get_IBOR_dict(IBOR_type, windcode, count_length = 1) --- 获取全部银行间拆放利率
 '''
 
+class database():
+    def __init__(self,txtfile):
+        self.txtfile=os.path.join('c:\\mouhaima\\data_sql',txtfile)
+
+        self.host=file(self.txtfile,'r').read().split('\n')[0].strip()
+        self.user=file(self.txtfile,'r').read().split('\n')[1].strip()
+        self.passwd=file(self.txtfile,'r').read().split('\n')[2].strip()
+        self.db=file(self.txtfile,'r').read().split('\n')[3].strip()
+
+        self.conn=MySQLdb.connect(host=self.host,user=self.user,passwd=self.passwd,db=self.db,charset='utf8')
+        self.cursor=self.conn.cursor()
+        self.cursor.execute("set interactive_timeout=24*3600")
+        self.rows=None
+    def select(self,str):
+        self.cursor.execute(str)
+        self.rows=self.cursor.fetchall()
+        return self.rows
+
+    def isindexed(self,str):
+        self.cursor.execute(str)
+        u=self.cursor.fetchone()
+        if u!=None:
+            return True
+        return False
+
+    def insertInf(self,str):
+        self.cursor.execute(str)
+        self.conn.commit()
+
+    def execute(self,str1):
+        self.cursor.execute(str1)
+        self.conn.commit()
+        
+DB = database('sql_wind.txt')
+
 '''
 ***在WIND-DB中查询并获取交易日字符串序列，可选日频或月频***
 '''
 def get_calendar(start_date, end_date, is_monthly = 1):
     str1 = "select TRADE_DAYS from AShareCalendar " \
                 "where TRADE_DAYS >= '%s' and TRADE_DAYS <= '%s' and S_INFO_EXCHMARKET = 'SSE' order by TRADE_DAYS desc" % (start_date, end_date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_calendar_list = []
     if is_monthly == 0: #日频
         for one in rows:
@@ -66,7 +101,7 @@ def get_stock_list(date, is_all_block = 1, include_ST = 1, year = 2, month = 0):
     
     str1 = "select S_INFO_WINDCODE, S_INFO_LISTBOARD, S_INFO_DELISTDATE from AShareDescription " \
                 "where S_INFO_LISTDATE <= '%s' order by S_INFO_WINDCODE" % (start_date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_stock_list = []
 
     for one in rows:
@@ -93,7 +128,7 @@ def delete_ST_stocks(stock_list, date):
     stock_str = xyk_common_data_processing.get_stock_str(stock_list)
     str1 = "select S_INFO_WINDCODE, S_TYPE_ST from AShareST " \
                 "where ENTRY_DT <= '%s' and (REMOVE_DT >= '%s' or REMOVE_DT is Null) and S_INFO_WINDCODE in %s" % (date, date, stock_str)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     ST_list = []
     for one in rows:
         if str(one[0]) in stock_list:
@@ -107,7 +142,7 @@ def delete_ST_stocks(stock_list, date):
 def get_ST_stocks(date):
     str1 = "select S_INFO_WINDCODE, S_TYPE_ST from AShareST " \
                 "where ENTRY_DT <= '%s' and (REMOVE_DT >= '%s' or REMOVE_DT is Null)" % (date, date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     ST_list = []
     for one in rows:
         ST_list.append(str(one[0]))
@@ -119,14 +154,14 @@ def get_ST_stocks(date):
 def get_suspended_stocks(date):
     str1 = "select S_INFO_WINDCODE, S_DQ_SUSPENDTYPE from AShareTradingSuspension " \
                 "where S_DQ_SUSPENDDATE <= '%s' and (S_DQ_RESUMPDATE >= '%s' or S_DQ_RESUMPDATE is Null) and S_DQ_SUSPENDTYPE = '444013000'" % (date, date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     suspend_list = []
     for one in rows:
         suspend_list.append(str(one[0]))
         
     str2 = "select S_INFO_WINDCODE, S_DQ_SUSPENDTYPE from AShareTradingSuspension " \
                 "where S_DQ_SUSPENDDATE = '%s' and S_DQ_SUSPENDTYPE != '444013000'" % (date)
-    rows = common.DB.select(str2)
+    rows = DB.select(str2)
     for one in rows:
         suspend_list.append(str(one[0]))
     return suspend_list
@@ -137,7 +172,7 @@ def get_suspended_stocks(date):
 def get_up_down_stocks(date):
     str1 = "select S_INFO_WINDCODE, UP_DOWN_LIMIT_STATUS from AShareEODDerivativeIndicator " \
                 "where TRADE_DT = '%s' and UP_DOWN_LIMIT_STATUS != 0" % (date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     up_list = []
     down_list = []
     for one in rows:
@@ -154,7 +189,7 @@ def get_all_stock_cube_data(table_name, attribute_list, start_date, end_date):
     attribute_str = xyk_common_data_processing.get_attribute_str(attribute_list)
     str1 = "select S_INFO_WINDCODE, TRADE_DT, " + attribute_str + " from " + table_name + " " \
                 "where TRADE_DT >= '%s' and TRADE_DT <= '%s' order by TRADE_DT, S_INFO_WINDCODE" % (start_date, end_date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     #print rows[0]
     RDF_total_dict = {}
     RDF_total_key_list = []
@@ -178,7 +213,7 @@ def get_all_stock_cube_data(table_name, attribute_list, start_date, end_date):
 def get_all_stock_closing_price(start_date, end_date, minimum_amount):
     str1 = "select S_INFO_WINDCODE, TRADE_DT, S_DQ_ADJCLOSE, S_DQ_ADJPRECLOSE from AShareEODPrices " \
                 "where TRADE_DT >= '%s' and TRADE_DT <= '%s' order by S_INFO_WINDCODE, TRADE_DT" % (start_date, end_date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_close_price_total_dict = {}
     RDF_close_price_total_stock_list = []
     null_list = []
@@ -242,7 +277,7 @@ def get_all_stock_ROR(start_date, end_date, minimum_amount):
 def get_all_stock_slide_value(table_name, indicator, date):
     str1 = "select S_INFO_WINDCODE, " + indicator + " from " + table_name + " "\
                 "where TRADE_DT = '%s' order by S_INFO_WINDCODE" % (date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_total_dict = {}
     RDF_total_stock_list = []
     i = 0
@@ -259,7 +294,7 @@ def get_all_stock_slide_value(table_name, indicator, date):
 def get_all_stock_time_series(table_name, indicator, start_date, end_date, minimum_amount):
     str1 = "select S_INFO_WINDCODE, TRADE_DT, " + indicator + " from " + table_name + " "\
                 "where TRADE_DT >= '%s' and TRADE_DT <= '%s' order by S_INFO_WINDCODE, TRADE_DT" % (start_date, end_date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_total_dict = {}
     RDF_total_stock_list = []
     null_list = []
@@ -300,7 +335,7 @@ def get_all_stock_time_series(table_name, indicator, start_date, end_date, minim
 def get_date_and_index_closing_price(index_code, table, start_date, end_date, minimum_amount):
     str1 = "select TRADE_DT, S_DQ_CLOSE from " + table + " "\
                 "where TRADE_DT >= '%s' and TRADE_DT <= '%s' and S_INFO_WINDCODE = '%s'" % (start_date, end_date, index_code)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_close_price_list = []
     #print rows
     if len(rows) < minimum_amount:
@@ -324,7 +359,7 @@ def get_index_weight(last_date, index):
     true_due_date = last_date[:6] + "15"
     str1 = "select TRADE_DT, S_CON_WINDCODE, I_WEIGHT from AIndexHS300FreeWeight "\
                 "where TRADE_DT > '%s' and TRADE_DT <= '%s' and S_INFO_WINDCODE = '%s' order by TRADE_DT desc, S_CON_WINDCODE asc" % (begin_date, true_due_date, index)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     weight_list = []
     stock_list = []
     i = 0
@@ -346,7 +381,7 @@ def get_all_stock_daily_financial_data(table_name, attribute_list, date):
     begin_date = str(int(date) - 10000)
     str1 = "select S_INFO_WINDCODE, ANN_DT, REPORT_PERIOD, " + attribute_str + " from " + table_name + " " \
                 "where ANN_DT >= '%s' and ANN_DT <= '%s' order by S_INFO_WINDCODE, ANN_DT desc, REPORT_PERIOD desc" % (begin_date, date)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_total_dict = {}
     RDF_total_key_list = []
     i = 0
@@ -387,7 +422,7 @@ def get_all_stock_balance_sheet_data(date, field):
     str1 = "select S_INFO_WINDCODE, %s from AShareBalanceSheet " \
             "where ANN_DT >= '%s' and ANN_DT < '%s' and (STATEMENT_TYPE = '%s' or STATEMENT_TYPE = '%s') "\
             "order by S_INFO_WINDCODE asc, REPORT_PERIOD desc, STATEMENT_TYPE desc" % (field, start_date, date, "408005000", "408001000")
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_total_dict = {}
     RDF_total_stock_list = []
     i = 0
@@ -411,7 +446,7 @@ def get_all_stock_Income_ttm_data(date, field):
     str1 = "select S_INFO_WINDCODE, REPORT_PERIOD, %s from AShareIncome " \
                 "where ANN_DT >= '%s' and ANN_DT < '%s' and (STATEMENT_TYPE = '%s' or STATEMENT_TYPE = '%s') "\
                 "order by S_INFO_WINDCODE asc, REPORT_PERIOD desc, STATEMENT_TYPE desc" % (field, start_date, date, "408005000", "408001000")
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_total_dict = {}
     RDF_total_stock_list = []
     null_list = []
@@ -578,7 +613,7 @@ def get_IBOR_dict(IBOR_type, windcode, count_length = 1):
     year_length = 360
     str1 = "select TRADE_DT, B_INFO_RATE from " + table_name + " \
                 where S_INFO_WINDCODE = '%s' order by TRADE_DT" % (windcode)
-    rows = common.DB.select(str1)
+    rows = DB.select(str1)
     RDF_total_dict = {}
     i = 0
     while i < len(rows):

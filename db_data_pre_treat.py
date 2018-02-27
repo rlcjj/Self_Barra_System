@@ -22,6 +22,7 @@ get_stock_st_dict(start_date, end_date, st_type = 0) --- 获取某个时间段�
 get_a_stock_no_st_dict(start_date, end_date, year, month, board = 1, st_type = 0) --- 获取某个时间段的某类股票数据，剔除ST股
 get_stock_suspension_dict_by_date(start_date, end_date, sus_type = 1) --- 获取某个时间段的某类停牌数据，以日期作为key
 get_stock_suspension_dict_by_stock(stock_list, start_date, end_date, sus_type = 1) --- 获取某个时间段的某类停牌数据，以股票代码作为key
+get_normal_stocklist_dict(start_date, end_date, year, month, board = 1, st_type = 0, sus_type = 1) --- 获取某个时间段的剔除停牌与ST与新股的股票代码dict
 '''
 
 '''
@@ -275,3 +276,17 @@ def get_stock_suspension_dict_by_stock(stock_list, start_date, end_date, sus_typ
             pass        
         i += 1
     return stock_sus_dict
+
+'''
+***这个函数用来获取某个时间段的剔除停牌与ST与新股的股票代码dict，以date作为key***
+'''
+def get_normal_stocklist_dict(start_date, end_date, year, month, board = 1, st_type = 0, sus_type = 1):
+    a_stock_no_st_dict = get_a_stock_no_st_dict(start_date, end_date, year, month, board, st_type)
+    stock_sus_dict = get_stock_suspension_dict_by_date(start_date, end_date, sus_type)
+    a_normal_stocklist_dict = {}
+    for date in a_stock_no_st_dict.keys():
+        setA = set(a_stock_no_st_dict[date])
+        setB = set(stock_sus_dict[date])
+        onlyInA = setA.difference(setB)
+        a_normal_stocklist_dict[date] = sorted(list(onlyInA))
+    return a_normal_stocklist_dict
