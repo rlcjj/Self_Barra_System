@@ -28,7 +28,7 @@ insert_attributes_commonly(table_name, value_list, attribute_list, update_list, 
     --- 以通用型方式向某数据表中插入一些数据
 get_data_list(table_name, data_attri_list, keep_none = 0, keep_datetime = 0, keep_unicode = 0)
     --- list型获取数据的方式，指定一定维度的数据，返回一个包含这些数据的list，每个小list为对应一条数据
-get_data_commonly(table_name, data_attri_list, key_attri_list, keep_none = 0, keep_datetime = 0, keep_unicode = 0)
+get_data_commonly(table_name, data_attri_list, key_attri_list, keep_none = 0, keep_datetime = 0, keep_unicode = 0, where = "")
     --- 通用型获取数据的方式，指定一定维度的数据，一定维度的key，则返回一个对应key的dict，每小项为对应数据
 get_data_df(table_name, data_attri_list, key_attri_list, dt_to_str = 1)
     --- 使用dataframe型获取数据的方式，指定一定维度的数据，一定维度的key，则返回一个对应multi-index的df
@@ -234,8 +234,12 @@ def insert_df_replace(table_name, data_df, index_name_list = []):
             index_list[i] = index_name_list[i]
             i += 1
     text_index_list = find_df_text_index(data_df)
-    if len(text_index_list) > 1:
-        print "We haven't known how to deal with DataFrame with more than 1 text keys!"
+    if len(text_index_list) > 2:
+        print "We haven't known how to deal with DataFrame with more than 2 text keys!"
+    elif len(text_index_list) == 2:
+        #print 1
+        data_df.to_sql(table_name, engine, if_exists = 'replace', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max()), text_index_list[1]:VARCHAR(data_df.index.get_level_values(text_index_list[1]).str.len().max())})
+        #print 2
     elif len(text_index_list) == 1:
         data_df.to_sql(table_name, engine, if_exists = 'replace', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max())})
     else:
@@ -256,8 +260,10 @@ def insert_df_afresh(table_name, data_df, index_name_list = []):
             index_list[i] = index_name_list[i]
             i += 1
     text_index_list = find_df_text_index(data_df)
-    if len(text_index_list) > 1:
-        print "We haven't known how to deal with DataFrame with more than 1 text keys!"
+    if len(text_index_list) > 2:
+        print "We haven't known how to deal with DataFrame with more than 2 text keys!"
+    elif len(text_index_list) == 2:
+        data_df.to_sql(table_name, engine, if_exists = 'append', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max()), text_index_list[1]:VARCHAR(data_df.index.get_level_values(text_index_list[1]).str.len().max())})
     elif len(text_index_list) == 1:
         data_df.to_sql(table_name, engine, if_exists='append', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max())})
     else:
@@ -302,6 +308,7 @@ def insert_df_commonly(table_name, data_df, index_name_list = [], attribute_name
     str1 = "UPDATE " + table_name + " as a, df_temp_table as b \
             SET " + set_str + " \
             WHERE " + where_str
+    #print str1
     thbase = database('sql_myhost.txt')
     thbase.execute(str1)
     return 0
@@ -334,6 +341,7 @@ def insert_attributes_commonly(table_name, value_list, attribute_list, update_li
         str1 += " ON DUPLICATE KEY UPDATE " +  update_str
         #print str1
         thbase.execute(str1)    
+        i += 1
     print "Now is the " + str(i + 1) + "th " + str(batch) + " data..."
     str1 = "INSERT INTO " + table_name + " (" + attribute_str + ")\
             VALUES "
@@ -509,11 +517,14 @@ def get_data_list(table_name, data_attri_list, keep_none = 0, keep_datetime = 0,
 
 '''这个函数是通用型获取数据的方式，指定一定维度的数据，一定维度的key，则返回一个对应key的dict，每小项为对应数据'''
 '''默认将所有datetime类转为str，将所有unicode转为str，将所有None保留'''
-def get_data_commonly(table_name, data_attri_list, key_attri_list, keep_none = 0, keep_datetime = 0, keep_unicode = 0):
+def get_data_commonly(table_name, data_attri_list, key_attri_list, keep_none = 0, keep_datetime = 0, keep_unicode = 0, one_to_one = 1, where = ""):
     whole_attribute_list = data_attri_list + key_attri_list
     whole_attribute_str = get_attribute_str(whole_attribute_list)
     thbase=database('sql_myhost.txt')
-    str1="select " + whole_attribute_str + " from " + table_name
+    if where == "":
+        str1="select " + whole_attribute_str + " from " + table_name
+    else:
+        str1="select " + whole_attribute_str + " from " + table_name + " where " + where
     rows1=thbase.select(str1)
     data_dict = {}
     for line in rows1:
@@ -541,7 +552,7 @@ def get_data_commonly(table_name, data_attri_list, key_attri_list, keep_none = 0
                     key_list_temp.append(this_data)
             i += 1
         if len(key_attri_list) == 1:
-            if len(data_attri_list) == 1:
+            if len(data_attri_list) == 1 and one_to_one == 1:
                 data_dict[key_list_temp] = data_list_temp
             else:
                 if data_dict.has_key(key_list_temp) == True:
@@ -549,7 +560,7 @@ def get_data_commonly(table_name, data_attri_list, key_attri_list, keep_none = 0
                 else:
                     data_dict[key_list_temp] = [data_list_temp]
         else:
-            if len(data_attri_list) == 1:
+            if len(data_attri_list) == 1 and one_to_one == 1:
                 data_dict[tuple(key_list_temp)] = data_list_temp
             else:
                 if data_dict.has_key(tuple(key_list_temp)) == True:

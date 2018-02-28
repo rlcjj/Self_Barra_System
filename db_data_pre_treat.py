@@ -19,10 +19,10 @@ mate_stock_indus(stock_list, date, indus_type, level, indus_data) --- 为某一�
 get_indus_dummy_variable_dict(indus_code_list) --- 构建行业哑变量
 get_a_stock_dict(start_date, end_date, year, month, board = 1) --- 获取某个时间段的某类股票代码表
 get_stock_st_dict(start_date, end_date, st_type = 0) --- 获取某个时间段的某类ST数据
-get_a_stock_no_st_dict(start_date, end_date, year, month, board = 1, st_type = 0) --- 获取某个时间段的某类股票数据，剔除ST股
+get_a_stock_no_st_dict(start_date, end_date, year = 0, month = 6, board = 1, st_type = 0) --- 获取某个时间段的某类股票数据，剔除ST股
 get_stock_suspension_dict_by_date(start_date, end_date, sus_type = 1) --- 获取某个时间段的某类停牌数据，以日期作为key
 get_stock_suspension_dict_by_stock(stock_list, start_date, end_date, sus_type = 1) --- 获取某个时间段的某类停牌数据，以股票代码作为key
-get_normal_stocklist_dict(start_date, end_date, year, month, board = 1, st_type = 0, sus_type = 1) --- 获取某个时间段的剔除停牌与ST与新股的股票代码dict
+get_normal_stocklist_dict(start_date, end_date, year = 0, month = 6, board = 1, st_type = 0, sus_type = 1) --- 获取某个时间段的剔除停牌与ST与新股的股票代码dict
 '''
 
 '''
@@ -71,15 +71,15 @@ def get_indus_dummy_variable_dict(indus_code_list):
 '''
 def get_a_stock_dict(start_date, end_date, year, month, board = 1):
     if board == 0: #主板
-        board_list = ["434004000"]
+        board_list = ["434006000", "434004000"]
     elif board == 1: #全部
-        board_list = ["434004000", "434003000", "434001000"]
+        board_list = ["434006000", "434004000", "434003000", "434001000"]
     elif board == 2: #主板+创业板
-        board_list = ["434004000", "434001000"]
+        board_list = ["434006000", "434004000", "434001000"]
     elif board == 3: #创业板
         board_list = ["434001000"]
     elif board == 4: #主板+中小企业板
-        board_list = ["434004000", "434003000"]
+        board_list = ["434006000", "434004000", "434003000"]
     elif board == 5: #创业板+中小企业板
         board_list = ["434001000", "434003000"]
     else:
@@ -205,7 +205,7 @@ def get_stock_st_dict(start_date, end_date, st_type = 0):
 '''
 ***这个函数用来获取某个时间段的某类股票数据，剔除ST股，可调整某板或上市时间满多久***
 '''
-def get_a_stock_no_st_dict(start_date, end_date, year, month, board = 1, st_type = 0):
+def get_a_stock_no_st_dict(start_date, end_date, year = 0, month = 6, board = 1, st_type = 0):
     a_stock_dict = get_a_stock_dict(start_date, end_date, year, month, board)
     stock_st_dict = get_stock_st_dict(start_date, end_date, st_type)
     a_stock_no_st_dict = {}
@@ -280,7 +280,7 @@ def get_stock_suspension_dict_by_stock(stock_list, start_date, end_date, sus_typ
 '''
 ***这个函数用来获取某个时间段的剔除停牌与ST与新股的股票代码dict，以date作为key***
 '''
-def get_normal_stocklist_dict(start_date, end_date, year, month, board = 1, st_type = 0, sus_type = 1):
+def get_normal_stocklist_dict(start_date, end_date, year = 0, month = 6, board = 1, st_type = 0, sus_type = 1):
     a_stock_no_st_dict = get_a_stock_no_st_dict(start_date, end_date, year, month, board, st_type)
     stock_sus_dict = get_stock_suspension_dict_by_date(start_date, end_date, sus_type)
     a_normal_stocklist_dict = {}

@@ -33,7 +33,7 @@ get_date_delta(date_str, delta_year, delta_month, direction) --- 找到某一天
 construct_date_hirabiki_dict(trading_date_list, natural_date_list) --- 建立date的索引字典
 get_all_element_from_dict(the_dict) --- 获取字典中全部key中全部元素的并集
 get_dict_difference(dict_A, dict_B, list_order = -1) --- 从一个字典中剔除另一个字典中相同的key中相同的list元素
-delete_none(X_list, Y_list, W_list, none_type = 0) --- 进行序列去空操作
+delete_none(X_list, none_value = None, lower_than_that = 0, exchange = 0, how = "any", thresh = None) --- 进行序列去空操作
 element_cal_between_list(A, B, cal_type) --- 进行序列元素间加减运算
 sum_to_one(raw_list, simple = 0) --- 将序列进行总和归一化（成为总值为1.0，比例不变的序列）
 weighted_mean(A_list, B_list, has_null = 0) --- 将A序列以B序列为权进行平均
@@ -297,6 +297,8 @@ def change_stock_format(origin, target, origin_list, del_unknown = 0):
                     print 'Cannot find a proper form! ' + str(origin_list[i])
                 elif del_unknown == 1:
                     pass
+                elif del_unknown == 2:
+                    target_list.append(np.nan)
             i += 1
     return target_list
 

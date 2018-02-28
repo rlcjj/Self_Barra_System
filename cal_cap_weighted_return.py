@@ -15,30 +15,31 @@ import xyk_common_wind_db_interaction
 import db_data_pre_treat
 import db_interaction
 
-start_date = "20070114"
-end_date = "20070115"
+start_date = "20050101"
+end_date = "20171231"
 weighted_type = "liquid"
-index_name = "hs300"
+index_name = "all"
 
 '''
 ***获取成分股数据***
 '''
-components_dict = db_interaction.get_data_commonly("daily_index_components_" + index_name, ["stock_id"], ["curr_date"], 1, 0, 0)
-for date in components_dict.keys():
-    components_dict[date] = xyk_common_data_processing.change_stock_format("no_tail", "with_tail", components_dict[date], 1)
-#daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
-#
-#'''
-#***获得全部出现过的股票代码序列，用于查询行情和停牌信息***
-#'''
-#total_stock_list = xyk_common_data_processing.get_all_element_from_dict(components_dict)
-#
-#'''
-#***从行情序列中查询，并检索停牌信息，剔除成分股中停牌的股票***
-#'''
-#hq_dict = db_interaction.get_daily_data_dict(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close'], total_stock_list, 0)
-suspension_dict = db_data_pre_treat.get_stock_suspension_dict(start_date, end_date, 1)
-components_dict = xyk_common_data_processing.get_dict_difference(components_dict, suspension_dict)
+if index_name == "all":
+    components_dict = db_data_pre_treat.get_normal_stocklist_dict(start_date, end_date, year = 0, month = 3)
+else:
+    where = index_name + " = 1"
+    components_dict = db_interaction.get_data_commonly("daily_index_components", ["stock_id"], ["curr_date"], one_to_one = 0, where = where)
+
+daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
+
+'''
+***获得全部出现过的股票代码序列，用于查询行情和停牌信息***
+'''
+total_stock_list = xyk_common_data_processing.get_all_element_from_dict(components_dict)
+
+'''
+***从行情序列中查询，并检索停牌信息，剔除成分股中停牌的股票***
+'''
+hq_dict = db_interaction.get_daily_data_dict(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close'], total_stock_list, 0)
 
 '''
 ***计算加权的return***
