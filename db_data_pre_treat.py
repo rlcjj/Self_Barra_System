@@ -82,6 +82,8 @@ def get_a_stock_dict(start_date, end_date, year, month, board = 1):
         board_list = ["434006000", "434004000", "434003000"]
     elif board == 5: #创业板+中小企业板
         board_list = ["434001000", "434003000"]
+    elif board == 6: #主板补全
+        board_list = ["434006000"]
     else:
         print "What else do you want?!"
     daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)

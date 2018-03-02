@@ -19,7 +19,7 @@ start_date = "20050101"
 cal_start_date = "20070115"
 end_date = "20171231"
 
-Now_Index = "all"
+Now_Index = "zz500"
 
 cal_daily_date_list = xyk_common_wind_db_interaction.get_calendar(cal_start_date, end_date, 0)
 daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
@@ -131,7 +131,6 @@ for stock in hq_dict_no_suspension.keys():
                     this_nlsize = this_cubed_ln_size - para_dict[date][2] - para_dict[date][3] * this_standard_ln_size
                     result_list2.append([stock, data[0], this_standard_ln_size, this_nlsize])
                     
-
 '''
 ***输出至DB***
 '''
@@ -140,4 +139,5 @@ result2_pd = xyk_common_data_processing.change_data_format_with_df("list of list
 result_pd_merged = result_pd.merge(result2_pd, how = 'outer', on = ["stock_id", "curr_date"])
 result_pd_merged.set_index(["stock_id", "curr_date"], inplace = True)
 print "Begin inserting..."
-db_interaction.insert_df_afresh("daily_stock_descriptors_all_unique", result_pd_merged, index_name_list = ["stock_id", "curr_date"])
+table_name = "daily_stock_descriptors_" + Now_Index + "_unique"
+db_interaction.insert_df_afresh(table_name, result_pd_merged, index_name_list = ["stock_id", "curr_date"])

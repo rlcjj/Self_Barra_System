@@ -16,15 +16,15 @@ import db_data_pre_treat
 
 start_date = "20070115"
 end_date = "20171231"
-Now_Index = "hs300"
-descriptor_1_list = ['ETOP', 'Earnings_STG', 'MLEV', 'BLEV', 'DTOA', 'STO_1M', 'STO_3M', 'STO_12M', 'BTOP', 'EP_Fwd12M', 'CashFlowYield_TTM', 'ROE', 'YOY_Profit']
-descriptor_2_list = ['LNCAP', 'Long_Momentum', 'Medium_Momentum', 'Short_Momentum', 'DASTD', 'CMRA']
-descriptor_3_list = ['Beta', 'HSIGMA', 'NLSIZE']
+Now_Index = "all"
+#descriptor_1_list = ['ETOP', 'Earnings_STG', 'MLEV', 'BLEV', 'DTOA', 'BTOP', 'EP_Fwd12M', 'CashFlowYield_TTM', 'ROE', 'YOY_Profit']
+#descriptor_2_list = ['LNCAP', 'Long_Momentum', 'Medium_Momentum', 'Short_Momentum', 'DASTD', 'CMRA']
+#descriptor_3_list = ['Beta', 'HSIGMA', 'NLSIZE']
 descriptor_4_list = ['STO_1M', 'STO_3M', 'STO_12M']
 factor_list = ['Size', 'Beta', 'Momentum', 'Volatility', 'NL_Size', 'Book_to_Price', 'Liquidity', 'Earnings', 'Growth', 'Leverage', 'ROR']
 table_name = "daily_stock_descriptors_pretreated"
 
-a_stock_no_st_dict = db_data_pre_treat.get_a_stock_no_st_dict(start_date, end_date, 0, 6, 1, 0)
+a_stock_no_st_dict = db_data_pre_treat.db_data_pre_treat.get_normal_stocklist_dict(start_date, end_date, year = 0, month = 6)
 total_stock_list = xyk_common_data_processing.get_all_element_from_dict(a_stock_no_st_dict)
 
 '''
@@ -34,7 +34,6 @@ total_stock_list = xyk_common_data_processing.get_all_element_from_dict(a_stock_
 #descriptors_2_dict = db_interaction.get_daily_data_dict_1_key(start_date, end_date, "daily_stock_descriptors_unified", descriptor_2_list, total_stock_list, 0, 1)
 #descriptors_3_dict = db_interaction.get_daily_data_dict_1_key(start_date, end_date, "daily_stock_descriptors_" + Now_Index + "_unique", descriptor_3_list, total_stock_list, 0, 1)
 descriptors_4_dict = db_interaction.get_daily_data_dict_1_key(start_date, end_date, "daily_stock_descriptors", descriptor_4_list, total_stock_list, 0, 1)
-#
 
 '''
 ***根据Index篮子确定标准化的参数***
@@ -84,7 +83,7 @@ for date in descriptors_4_dict.keys():
         db_interaction.insert_attributes_commonly(table_name, pretreat_list, ["stock_id", "curr_date"] + descriptor_4_list, descriptor_4_list)
         pretreat_list = []
 db_interaction.insert_attributes_commonly(table_name, pretreat_list, ["stock_id", "curr_date"] + descriptor_4_list, descriptor_4_list)
-#
+
 #'''
 #***标准化、聚合、再标准化***
 #'''

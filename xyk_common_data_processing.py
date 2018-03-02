@@ -36,7 +36,7 @@ get_dict_difference(dict_A, dict_B, list_order = -1) --- 从一个字典中剔�
 delete_none(X_list, none_value = None, lower_than_that = 0, exchange = 0, how = "any", thresh = None) --- 进行序列去空操作
 element_cal_between_list(A, B, cal_type) --- 进行序列元素间加减运算
 sum_to_one(raw_list, simple = 0) --- 将序列进行总和归一化（成为总值为1.0，比例不变的序列）
-weighted_mean(A_list, B_list, has_null = 0) --- 将A序列以B序列为权进行平均
+weighted_mean(A_list, B_list, has_null = 0, use_df = 0) --- 将A序列以B序列为权进行平均
 z_score_nomalize(raw_list) --- 将序列进行一般标准化（成为均值0，标准差为1的序列）
 BARRA_nomalize(raw_list, weight_list) --- 将序列进行BARRA模式标准化(另外允许None的出现)
 shrinkage(raw_list, upper_bound = None, lower_bound = None) --- 将序列中大于3倍标准差的部分拉回到3倍标准差
@@ -585,59 +585,79 @@ def sum_to_one(raw_list, simple = 0):
 
 '''
 ***将A序列以B序列为权进行平均，has_null指是不是存在以-1.0或None/np.nan代替的空变量，1为用-1，2为用None***
+***如果要使用df，则数据规模需要较大才划算***
 '''
-def weighted_mean(A_list, B_list, has_null = 0):
+def weighted_mean(A_list, B_list, has_null = 0, use_df = 0):
     if len(A_list) != len(B_list):
         print "Error! Data and weight have different amount!"
         return 0
-    elif has_null == 1:
-        repaired_A_list = []
-        repaired_B_list = []
-        i = 0
-        while i < len(A_list):
-            if A_list[i] < -0.0001:
-                pass
+    elif use_df == 0:
+        if has_null == 1:
+            repaired_A_list = []
+            repaired_B_list = []
+            i = 0
+            while i < len(A_list):
+                if A_list[i] < -0.0001:
+                    pass
+                else:
+                    repaired_A_list.append(A_list[i])
+                    repaired_B_list.append(B_list[i])
+                i += 1
+            if len(repaired_A_list) == 0:
+                return None
             else:
-                repaired_A_list.append(A_list[i])
-                repaired_B_list.append(B_list[i])
-            i += 1
-        if len(repaired_A_list) == 0:
-            return 0.0
+                standard_B_list = sum_to_one(repaired_B_list, 1)
+                A_np = np.array(repaired_A_list)
+                B_np = np.array(standard_B_list)
+                return np.dot(A_np, B_np)
+        elif has_null == 2:
+            repaired_A_list = []
+            repaired_B_list = []
+            i = 0
+            while i < len(A_list):
+                if A_list[i] == None or B_list[i] == None:
+                    pass
+                elif math.isnan(A_list[i]) == True or math.isnan(B_list[i]) == True:
+                    pass
+                elif A_list[i] == np.nan or B_list[i] == np.nan:
+                    pass
+                else:
+                    repaired_A_list.append(A_list[i])
+                    repaired_B_list.append(B_list[i])
+                i += 1
+            if len(repaired_A_list) == 0:
+                return None
+            else:
+                standard_B_list = sum_to_one(repaired_B_list, 1)
+                sum_value = 0.0
+                i = 0
+                while i < len(repaired_A_list):
+                    sum_value += repaired_A_list[i] * standard_B_list[i]
+                    i += 1
+                return sum_value
         else:
-            standard_B_list = sum_to_one(repaired_B_list, 1)
-            A_np = np.array(repaired_A_list)
+            standard_B_list = sum_to_one(B_list, 1)
+            A_np = np.array(A_list)
             B_np = np.array(standard_B_list)
             return np.dot(A_np, B_np)
-    elif has_null == 2:
-        repaired_A_list = []
-        repaired_B_list = []
-        i = 0
-        while i < len(A_list):
-            if A_list[i] == None or B_list[i] == None:
-                pass
-            elif math.isnan(A_list[i]) == True or math.isnan(B_list[i]) == True:
-                pass
-            elif A_list[i] == np.nan or B_list[i] == np.nan:
-                pass
-            else:
-                repaired_A_list.append(A_list[i])
-                repaired_B_list.append(B_list[i])
-            i += 1
-        if len(repaired_A_list) == 0:
-            return None
-        else:
-            standard_B_list = sum_to_one(repaired_B_list, 1)
-            sum_value = 0.0
-            i = 0
-            while i < len(repaired_A_list):
-                sum_value += repaired_A_list[i] * standard_B_list[i]
-                i += 1
-            return sum_value
     else:
-        standard_B_list = sum_to_one(B_list, 1)
-        A_np = np.array(A_list)
-        B_np = np.array(standard_B_list)
-        return np.dot(A_np, B_np)
+        A_df = pd.DataFrame(A_list)
+        B_df = pd.DataFrame(B_list)
+        if has_null == 1:
+            A_df[A_df < 0] = np.nan
+            C_df = pd.concat([A_df, B_df], axis = 1)
+            C_df = delete_none(C_df)
+            D_df = C_df.iloc[:, 1] / C_df.iloc[:, 1].sum() * C_df.iloc[:, 0]
+            return D_df.sum()
+        elif has_null == 2:
+            C_df = pd.concat([A_df, B_df], axis = 1)
+            C_df = delete_none(C_df)
+            D_df = C_df.iloc[:, 1] / C_df.iloc[:, 1].sum() * C_df.iloc[:, 0]
+            return D_df.sum()
+        else:
+            C_df = pd.concat([A_df, B_df], axis = 1)
+            D_df = C_df.iloc[:, 1] / C_df.iloc[:, 1].sum() * C_df.iloc[:, 0]
+            return D_df.sum()
     
 '''
 ***将序列进行一般标准化（成为均值0，标准差为1的序列）***
