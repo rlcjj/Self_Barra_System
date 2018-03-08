@@ -183,10 +183,16 @@ def change_data_format_with_df(origin, target, origin_data, columns_name_list = 
     target_data = []
     if target == "DataFrame":
         if origin == "dict of lists" or origin == "dict":
-            columns_length = len(origin_data[origin_data.keys()[0]])
+            if isinstance(origin_data[origin_data.keys()[0]], (list, tuple)) == True:
+                columns_length = len(origin_data[origin_data.keys()[0]])
+            else:
+                columns_length = 1
             if columns_length != len(columns_name_list):
                 columns_name_list = range(columns_length)
-            index_length = len(origin_data.keys()[0])
+            if isinstance(origin_data.keys()[0], (list, tuple)) == True:
+                index_length = len(origin_data.keys()[0])
+            else:
+                index_length = 1
             if index_length != len(index_name_list):
                 index_name_list = range(100, index_length + 100)
             

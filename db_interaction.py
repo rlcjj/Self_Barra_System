@@ -20,6 +20,8 @@ insert_df_replace(table_name, data_df, index_name_list = [])
     --- 针对DataFrame类数据，以创建型方式向某数据表中插入，即每次创建新的表并插入
 insert_df_afresh(table_name, data_df, index_name_list = [])
     --- 针对DataFrame类数据，以擦除型方式向某数据表中插入，即每次先清空再重新插入
+insert_df_append(table_name, data_df, index_name_list = [])
+    --- 针对DataFrame类数据，以添加型方式向某数据表中插入，即每次直接插入（但key相同会报错）
 insert_df_commonly(table_name, data_df, index_name_list = [], attribute_name_list = [])
     --- 针对DataFrame类数据，以通用型方式向某数据表中插入，即有重复的，则更新columns里对应的数据
 insert_attributes_afresh(table_name, value_list, attribute_list)
@@ -36,9 +38,9 @@ get_daily_stock_list(date, forbid_list)
     --- 从state中找出符合要求的股票代码列表
 get_daily_data_dict(start_date, end_date, table_name, attribute_list, stock_list = [], is_str = 0, to_df = 0)
     --- 从各股数据表中找出特定股票的一定长度的特定数据，以股票代码和日期两维数据作key
-get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, stock_list = [], is_str = 0, date_for_key = 0)
+get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, stock_list = [], is_str = 0, date_for_key = 0, to_df = 0)
     --- 从各股数据表中找出特定股票的一定长度的特定数据，以一维作key，另一维则放在key所指向的内容第一项
-get_daily_data_df(start_date, end_date, table_name, attribute_list, stock_list = [], dt_to_str = 1)
+get_daily_data_df(start_date, end_date, table_name, attribute_list, stock_list = [], dt_to_str = 1, date_first = 0)
     --- 这个函数是以DataFrame格式取出时间序列数据，以股票代码和日期两维数据作multi-index
 '''
 
@@ -166,6 +168,9 @@ def find_df_index_list(df_data):
     elif type(df_data.index) == pd.core.indexes.base.RangeIndex:
         index_list.append('index_range')
         df_type = 3
+    elif type(df_data.index) == pd.core.indexes.datetimes.DatetimeIndex:
+        index_list.append('index_dt')
+        df_type = 4
     else:
         print "We don't know this type of DataFrame.Index!"
     return df_type, index_list
@@ -224,10 +229,16 @@ def change_df_date_format(origin_data):
 '''
 
 '''这个函数是针对DataFrame类数据，以创建型方式向某数据表中插入，即每次创建新的表并插入'''
-def insert_df_replace(table_name, data_df, index_name_list = []):
+def insert_df_replace(table_name, data_df, index_name_list = [], index_dt_level = -1):
     engine_str = df_get_engine('sql_myhost.txt')
     engine = create_engine(engine_str)
     df_type, index_list = find_df_index_list(data_df)
+    if df_type == 1:
+        if index_dt_level != -1:
+            data_df.index = data_df.index.set_levels(pd.to_datetime(pd.Series(data_df.index.levels[0]), format = '%Y%m%d').dt.date, level = index_dt_level)
+    else:
+        if index_dt_level != -1:
+            data_df = data_df.set_index(pd.to_datetime(data_df.index.values, format = '%Y%m%d').date)
     if len(index_list) == len(index_name_list):
         i = 0
         while i < len(index_list):
@@ -270,9 +281,30 @@ def insert_df_afresh(table_name, data_df, index_name_list = []):
         data_df.to_sql(table_name, engine, if_exists = 'append', index_label = index_list, chunksize = 500)
     return 0
 
+'''这个函数是针对DataFrame类数据，以添加型方式向某数据表中插入，即每次直接插入（但key相同会报错）'''
+def insert_df_append(table_name, data_df, index_name_list = []):
+    engine_str = df_get_engine('sql_myhost.txt')
+    engine = create_engine(engine_str)
+    df_type, index_list = find_df_index_list(data_df)
+    if len(index_list) == len(index_name_list):
+        i = 0
+        while i < len(index_list):
+            index_list[i] = index_name_list[i]
+            i += 1
+    text_index_list = find_df_text_index(data_df)
+    if len(text_index_list) > 2:
+        print "We haven't known how to deal with DataFrame with more than 2 text keys!"
+    elif len(text_index_list) == 2:
+        data_df.to_sql(table_name, engine, if_exists = 'append', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max()), text_index_list[1]:VARCHAR(data_df.index.get_level_values(text_index_list[1]).str.len().max())})
+    elif len(text_index_list) == 1:
+        data_df.to_sql(table_name, engine, if_exists='append', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max())})
+    else:
+        data_df.to_sql(table_name, engine, if_exists = 'append', index_label = index_list, chunksize = 500)
+    return 0
+
 '''这个函数是针对DataFrame类数据，以通用型方式向某数据表中插入，即有重复的，则更新columns里对应的数据'''
-def insert_df_commonly(table_name, data_df, index_name_list = [], attribute_name_list = []):
-    insert_df_replace("df_temp_table", data_df, index_name_list)
+def insert_df_commonly(table_name, data_df, index_name_list = [], attribute_name_list = [], index_dt_level = -1):
+    insert_df_replace("df_temp_table", data_df, index_name_list, index_dt_level = index_dt_level)
     df_type, index_list = find_df_index_list(data_df)
     if len(index_list) == len(index_name_list):
         i = 0
@@ -659,7 +691,7 @@ def get_daily_data_dict(start_date, end_date, table_name, attribute_list, stock_
 '''以股票代码一维数据作key，日期放在代码所指向的内容第一项'''
 '''也可选择以日期一维数据作key，股票代码放在日期所指向的内容第一项'''
 '''可以不填写股票代码，则默认取出全部符合条件的股票'''
-def get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, stock_list = [], is_str = 0, date_for_key = 0):
+def get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, stock_list = [], is_str = 0, date_for_key = 0, to_df = 0):
     attribute_str = get_attribute_str(attribute_list)
     stock_str = get_stock_str(stock_list)
     thbase=database('sql_myhost.txt')
@@ -688,6 +720,9 @@ def get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, 
                     daily_data.append(None)
                 j += 1
             data_dict[line[0]].append(daily_data)
+        if to_df != 0:
+            for key in data_dict.keys():
+                data_dict[key] = pd.DataFrame(data_dict[key], columns = ['curr_date'] + attribute_list).set_index('curr_date')
     else:
         for line in rows1:
             #print line
@@ -705,23 +740,37 @@ def get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, 
                     daily_data.append(None)
                 j += 1
             data_dict[str(line[1].strftime('%Y%m%d'))].append(daily_data)
+        if to_df != 0:
+            for key in data_dict.keys():
+                data_dict[key] = pd.DataFrame(data_dict[key], columns = ['stock_id'] + attribute_list).set_index('stock_id')
     return data_dict
 
 '''这个函数是以DataFrame格式取出时间序列数据'''
 '''以股票代码和日期两维数据作multi-index'''
 '''可以不填写股票代码，则默认取出全部符合条件的股票'''
-def get_daily_data_df(start_date, end_date, table_name, attribute_list, stock_list = [], dt_to_str = 1):
+def get_daily_data_df(start_date, end_date, table_name, attribute_list, stock_list = [], dt_to_str = 1, date_first = 0):
     attribute_str = get_attribute_str(attribute_list)
     stock_str = get_stock_str(stock_list)
-    if len(stock_list) == 0:
-        str1="select stock_id, curr_date, " + attribute_str + " from " + table_name + " \
-            where curr_date >= '%s' and curr_date <= '%s'" %(start_date, end_date)
+    if date_first == 0:
+        if len(stock_list) == 0:
+            str1="select stock_id, curr_date, " + attribute_str + " from " + table_name + " \
+                where curr_date >= '%s' and curr_date <= '%s'" %(start_date, end_date)
+        else:
+            str1="select stock_id, curr_date, " + attribute_str + " from " + table_name + " \
+                where curr_date >= '%s' and curr_date <= '%s' and stock_id in %s" %(start_date, end_date, stock_str)
+        engine_str = df_get_engine('sql_myhost.txt')
+        engine = create_engine(engine_str)
+        data_df = pd.read_sql(str1, engine, index_col = ["stock_id", "curr_date"], columns = attribute_list)
     else:
-        str1="select stock_id, curr_date, " + attribute_str + " from " + table_name + " \
-            where curr_date >= '%s' and curr_date <= '%s' and stock_id in %s" %(start_date, end_date, stock_str)
-    engine_str = df_get_engine('sql_myhost.txt')
-    engine = create_engine(engine_str)
-    data_df = pd.read_sql(str1, engine, index_col = ["stock_id", "curr_date"], columns = attribute_list)
+        if len(stock_list) == 0:
+            str1="select curr_date, stock_id, " + attribute_str + " from " + table_name + " \
+                where curr_date >= '%s' and curr_date <= '%s'" %(start_date, end_date)
+        else:
+            str1="select curr_date, stock_id, " + attribute_str + " from " + table_name + " \
+                where curr_date >= '%s' and curr_date <= '%s' and stock_id in %s" %(start_date, end_date, stock_str)
+        engine_str = df_get_engine('sql_myhost.txt')
+        engine = create_engine(engine_str)
+        data_df = pd.read_sql(str1, engine, index_col = ["curr_date", "stock_id"], columns = attribute_list)
     if dt_to_str == 1:
         data_df = change_df_date_format(data_df)
     return data_df

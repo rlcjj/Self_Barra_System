@@ -12,11 +12,6 @@ import MySQLdb
 '''
 ------目录------
 get_calendar(start_date, end_date, is_monthly = 1) --- 获取交易日字符串序列
-get_stock_list(date, is_all_block = 1, include_ST = 1, year = 2, month = 0) --- 获取股票代码序列
-delete_ST_stocks(stock_list, date) --- 去除全部ST股票
-get_ST_stocks(date) --- 选出本日全部ST股票
-get_suspended_stocks(date) --- 选出本日全部停牌股票
-get_up_down_stocks(date) --- 选出本日全部涨跌停股票
 get_all_stock_cube_data(table_name, attribute_list, start_date, end_date) --- 获取全部股票立方体数据
 get_all_stock_closing_price(start_date, end_date, minimum_amount) --- 获取全部股票复权后收盘价与昨日收盘价
 get_all_stock_ROR(start_date, end_date, minimum_amount) --- 计算出全部股票的ROR字典
@@ -90,98 +85,6 @@ def get_calendar(start_date, end_date, is_monthly = 1):
     
 #calendar_list = get_calendar("20160101", "20170101", 0)
 
-'''
-***在WIND-DB中查询并获取股票代码序列，可选主板或全部A股，包不包括ST股，存续期长度***
-'''
-def get_stock_list(date, is_all_block = 1, include_ST = 1, year = 2, month = 0):
-    if int(date[:6]) % 100 > month:
-        start_date = str(int(date) - year * 10000 - month * 100)
-    else:
-        start_date = str(int(date) - (year + 1) * 10000 - month * 100 + 1200)
-    
-    str1 = "select S_INFO_WINDCODE, S_INFO_LISTBOARD, S_INFO_DELISTDATE from AShareDescription " \
-                "where S_INFO_LISTDATE <= '%s' order by S_INFO_WINDCODE" % (start_date)
-    rows = DB.select(str1)
-    RDF_stock_list = []
-
-    for one in rows:
-        #如果已经退市，那么不再获取数据
-        if str(one[2]) == "" or str(one[2]) > str(date):
-            #is_all_block是0——主板；是2——主板+创业板；是1——全部；是3——创业板
-            if (is_all_block == 0 and str(one[1]) == "434004000") or (is_all_block == 2 and (str(one[1]) == "434004000")\
-                or (str(one[1]) == "434001000")) or (is_all_block == 3 and str(one[1]) == "434001000") or is_all_block == 1:
-                RDF_stock_list.append(str(one[0]))
-            else:
-                pass
-        else:
-            pass
-            
-    if include_ST == 0: #不包含ST股和*ST股
-        (stock_list, ST_list) = delete_ST_stocks(RDF_stock_list, date)
-        
-    return stock_list
-
-'''
-***在WIND-DB中查询并去除全部ST股票***
-'''
-def delete_ST_stocks(stock_list, date):
-    stock_str = xyk_common_data_processing.get_stock_str(stock_list)
-    str1 = "select S_INFO_WINDCODE, S_TYPE_ST from AShareST " \
-                "where ENTRY_DT <= '%s' and (REMOVE_DT >= '%s' or REMOVE_DT is Null) and S_INFO_WINDCODE in %s" % (date, date, stock_str)
-    rows = DB.select(str1)
-    ST_list = []
-    for one in rows:
-        if str(one[0]) in stock_list:
-            stock_list.remove(str(one[0]))
-            ST_list.append(str(one[0]))
-    return stock_list, ST_list  
-
-'''
-***在WIND-DB中选出本日全部ST股票***
-'''
-def get_ST_stocks(date):
-    str1 = "select S_INFO_WINDCODE, S_TYPE_ST from AShareST " \
-                "where ENTRY_DT <= '%s' and (REMOVE_DT >= '%s' or REMOVE_DT is Null)" % (date, date)
-    rows = DB.select(str1)
-    ST_list = []
-    for one in rows:
-        ST_list.append(str(one[0]))
-    return ST_list
-
-'''
-***在WIND-DB中选出本日全部停牌股票***
-'''
-def get_suspended_stocks(date):
-    str1 = "select S_INFO_WINDCODE, S_DQ_SUSPENDTYPE from AShareTradingSuspension " \
-                "where S_DQ_SUSPENDDATE <= '%s' and (S_DQ_RESUMPDATE >= '%s' or S_DQ_RESUMPDATE is Null) and S_DQ_SUSPENDTYPE = '444013000'" % (date, date)
-    rows = DB.select(str1)
-    suspend_list = []
-    for one in rows:
-        suspend_list.append(str(one[0]))
-        
-    str2 = "select S_INFO_WINDCODE, S_DQ_SUSPENDTYPE from AShareTradingSuspension " \
-                "where S_DQ_SUSPENDDATE = '%s' and S_DQ_SUSPENDTYPE != '444013000'" % (date)
-    rows = DB.select(str2)
-    for one in rows:
-        suspend_list.append(str(one[0]))
-    return suspend_list
-
-'''
-***在WIND-DB中选出本日全部涨跌停股票***
-'''
-def get_up_down_stocks(date):
-    str1 = "select S_INFO_WINDCODE, UP_DOWN_LIMIT_STATUS from AShareEODDerivativeIndicator " \
-                "where TRADE_DT = '%s' and UP_DOWN_LIMIT_STATUS != 0" % (date)
-    rows = DB.select(str1)
-    up_list = []
-    down_list = []
-    for one in rows:
-        if int(one[1]) == 1:
-            up_list.append(str(one[0]))
-        elif int(one[1]) == -1:
-            down_list.append(str(one[0]))
-    return up_list, down_list
-    
 '''
 ***在WIND-DB中查询并获取全部股票立方体数据（字典形式），如果当前处于停盘等异常状态，返回空***
 '''

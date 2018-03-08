@@ -262,4 +262,4 @@ result_pd_merged = result_pd_merged.merge(result9_pd, how = 'outer', on = ["stoc
 result_pd_merged.set_index(["stock_id", "curr_date"], inplace = True)
 print "Begin inserting..."
 table_name = "daily_stock_descriptors_unified"
-db_interaction.insert_df_afresh(table_name, result_pd_merged, index_name_list = ["stock_id", "curr_date"])
+db_interaction.insert_df_append(table_name, result_pd_merged, index_name_list = ["stock_id", "curr_date"])
