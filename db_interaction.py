@@ -255,6 +255,7 @@ def insert_df_replace(table_name, data_df, index_name_list = [], index_dt_level 
         data_df.to_sql(table_name, engine, if_exists = 'replace', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max())})
     else:
         data_df.to_sql(table_name, engine, if_exists = 'replace', index_label = index_list, chunksize = 500)
+    engine.dispose()
     return 0
 
 '''这个函数是针对DataFrame类数据，以擦除型方式向某数据表中插入，即每次先清空再重新插入'''
@@ -279,6 +280,7 @@ def insert_df_afresh(table_name, data_df, index_name_list = []):
         data_df.to_sql(table_name, engine, if_exists='append', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max())})
     else:
         data_df.to_sql(table_name, engine, if_exists = 'append', index_label = index_list, chunksize = 500)
+    engine.dispose()
     return 0
 
 '''这个函数是针对DataFrame类数据，以添加型方式向某数据表中插入，即每次直接插入（但key相同会报错）'''
@@ -300,6 +302,7 @@ def insert_df_append(table_name, data_df, index_name_list = []):
         data_df.to_sql(table_name, engine, if_exists='append', index_label = index_list, chunksize = 500, dtype = {text_index_list[0]:VARCHAR(data_df.index.get_level_values(text_index_list[0]).str.len().max())})
     else:
         data_df.to_sql(table_name, engine, if_exists = 'append', index_label = index_list, chunksize = 500)
+    engine.dispose()
     return 0
 
 '''这个函数是针对DataFrame类数据，以通用型方式向某数据表中插入，即有重复的，则更新columns里对应的数据'''
@@ -374,13 +377,15 @@ def insert_attributes_commonly(table_name, value_list, attribute_list, update_li
         #print str1
         thbase.execute(str1)    
         i += 1
-    print "Now is the " + str(i + 1) + "th " + str(batch) + " data..."
-    str1 = "INSERT INTO " + table_name + " (" + attribute_str + ")\
-            VALUES "
-    str1 += get_insert_str_mat(value_list[batch * i:])
-    str1 += " ON DUPLICATE KEY UPDATE " +  update_str
-    #print str1
-    thbase.execute(str1)  
+    if batch * i != len(value_list):
+        if i != 0:
+            print "Now is the " + str(i + 1) + "th " + str(batch) + " data..."
+        str1 = "INSERT INTO " + table_name + " (" + attribute_str + ")\
+                VALUES "
+        str1 += get_insert_str_mat(value_list[batch * i:])
+        str1 += " ON DUPLICATE KEY UPDATE " +  update_str
+        #print str1
+        thbase.execute(str1)  
     return 0
 
 '''以下为已经停止使用的部分函数'''
@@ -609,6 +614,7 @@ def get_data_df(table_name, data_attri_list, key_attri_list, dt_to_str = 1):
     data_df = pd.read_sql_table(table_name, engine, index_col = key_attri_list, columns = data_attri_list)
     if dt_to_str == 1:
         data_df = change_df_date_format(data_df)
+    engine.dispose()
     return data_df
 
 '''这个函数是从state中找出符合要求的股票代码列表'''
@@ -773,6 +779,7 @@ def get_daily_data_df(start_date, end_date, table_name, attribute_list, stock_li
         data_df = pd.read_sql(str1, engine, index_col = ["curr_date", "stock_id"], columns = attribute_list)
     if dt_to_str == 1:
         data_df = change_df_date_format(data_df)
+    engine.dispose()
     return data_df
 
 '''以下为已经停止使用的部分函数'''

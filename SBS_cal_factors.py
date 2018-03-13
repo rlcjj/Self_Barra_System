@@ -17,7 +17,7 @@ import db_data_pre_treat
 
 start_date = "20070115"
 end_date = "20171231"
-Now_Index = "hs300"
+Now_Index = "zz500"
 
 Descriptor_List = ['ETOP', 'Earnings_STG', 'MLEV', 'BLEV', 'DTOA', 'STO_1M', 'STO_3M', 'STO_12M', 'BTOP', 'EP_Fwd12M',\
                    'CashFlowYield_TTM', 'ROE', 'YOY_Profit', 'LNCAP', 'Long_Momentum', 'Medium_Momentum', 'Short_Momentum',\
