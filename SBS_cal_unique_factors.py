@@ -15,11 +15,13 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-start_date = "20050101"
+start_date = "20051010"
 cal_start_date = "20070115"
-end_date = "20171231"
+end_date = "20180320"
 
-Now_Index = "zz500"
+Now_Index = "zz800"
+
+After_date = 0
 
 cal_daily_date_list = xyk_common_wind_db_interaction.get_calendar(cal_start_date, end_date, 0)
 daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
@@ -42,7 +44,7 @@ for date in SHIBOR_dict.keys():
 
 '''
 ***以下为计算Beta描述量与HSIGMA描述量***
-***上市后有372个可交易日以上时才进行计算***
+***上市后有After_date个可交易日以上时才进行计算***
 ***计算二者时使用252个交易日收益率，半衰期均为63***
 '''
 half_life_list = xyk_common_data_processing.get_half_life_list(252, 63)
@@ -51,9 +53,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 372:
+    if len(hq_dict_no_suspension[stock]) > After_date + 252:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 372:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 252:
                 temp_ROR_list = []
                 this_shibor_list = []
                 this_index_ROR_list = []
@@ -77,67 +79,14 @@ for stock in hq_dict_no_suspension.keys():
                 this_treated_list = []
                 for resid_data in resid_list:
                     this_treated_list.append((resid_data - this_resid_mean) * (resid_data - this_resid_mean))
-                this_HSIGMA = math.sqrt(xyk_common_data_processing.weighted_mean(this_treated_list, half_life_list))
+                this_HSIGMA = math.sqrt(xyk_common_data_processing.weighted_mean(this_treated_list, half_life_list, use_df = 1))
                 result_list.append([stock, data[0], this_beta, this_HSIGMA])
-                
-'''
-***以下为计算以index为范围标准化的Standard_Size描述量与在那之上回归得到的NLSIZE描述量***
-***上市后有120个可交易日以上时才进行计算***
-***分成两步，先计算index的参数，在用这些参数算出全部stock的描述量***
-'''
-size_hq_dict = db_interaction.get_daily_data_dict(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close'], total_stock_list, 0)
-if Now_Index == "all":
-    components_dict = a_stock_normal_dict
-else:
-    where = Now_Index + " = 1"
-    components_dict = db_interaction.get_data_commonly("daily_index_components", ["stock_id"], ["curr_date"], one_to_one = 0, where = where)
-
-para_dict = {}
-for date in components_dict.keys():
-    print date
-    raw_index_ln_size_list = []
-    for stock in components_dict[date]:
-        if size_hq_dict.has_key((stock, date)) == True and size_hq_dict[(stock, date)][0] != '' and size_hq_dict[(stock, date)][0] != None:
-            raw_index_ln_size_list.append(math.log(size_hq_dict[(stock, date)][0]))
-    para_dict[date] = [np.mean(raw_index_ln_size_list), np.std(raw_index_ln_size_list)]
-    standard_index_ln_size_list = []
-    cubed_index_ln_size_list = []
-    for data in raw_index_ln_size_list:
-        this_standard_data = (data - para_dict[date][0]) / para_dict[date][1]
-        standard_index_ln_size_list.append(this_standard_data)
-        cubed_index_ln_size_list.append(this_standard_data * this_standard_data * this_standard_data)
-    X = sm.add_constant(standard_index_ln_size_list)
-    Y = cubed_index_ln_size_list
-    ols_model = sm.OLS(Y, X)
-    results = ols_model.fit()
-    this_para_0 = float(results.params[0])
-    this_para_1 = float(results.params[1])
-    para_dict[date].append(this_para_0)
-    para_dict[date].append(this_para_1)
-
-result_list2 = []
-count = 0
-for stock in hq_dict_no_suspension.keys():
-    print count
-    count += 1
-    if len(hq_dict_no_suspension[stock]) > 120:
-        this_start_date = hq_dict_no_suspension[stock][120][0]
-        for data in hq_dict[stock]:
-            if data[0] >= this_start_date and data[0] >= cal_daily_date_list[0]:
-                if data[1] != '' and data[1] != None:
-                    this_raw_ln_size = math.log(data[1])
-                    this_standard_ln_size = (this_raw_ln_size - para_dict[date][0]) / para_dict[date][1]
-                    this_cubed_ln_size = this_standard_ln_size * this_standard_ln_size * this_standard_ln_size
-                    this_nlsize = this_cubed_ln_size - para_dict[date][2] - para_dict[date][3] * this_standard_ln_size
-                    result_list2.append([stock, data[0], this_standard_ln_size, this_nlsize])
                     
 '''
 ***输出至DB***
 '''
 result_pd = xyk_common_data_processing.change_data_format_with_df("list of lists", "DataFrame", result_list, columns_name_list = ["stock_id", "curr_date", "Beta", "HSIGMA"])
-result2_pd = xyk_common_data_processing.change_data_format_with_df("list of lists", "DataFrame", result_list2, columns_name_list = ["stock_id", "curr_date", "Standard_Size", "NLSIZE"])
-result_pd_merged = result_pd.merge(result2_pd, how = 'outer', on = ["stock_id", "curr_date"])
-result_pd_merged.set_index(["stock_id", "curr_date"], inplace = True)
+result_pd.set_index(["stock_id", "curr_date"], inplace = True)
 print "Begin inserting..."
 table_name = "daily_stock_descriptors_" + Now_Index + "_unique"
-db_interaction.insert_df_append(table_name, result_pd_merged, index_name_list = ["stock_id", "curr_date"])
+db_interaction.insert_df_append(table_name, result_pd, index_name_list = ["stock_id", "curr_date"])

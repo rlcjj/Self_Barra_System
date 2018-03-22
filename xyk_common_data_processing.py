@@ -41,7 +41,7 @@ z_score_nomalize(raw_list) --- 将序列进行一般标准化（成为均值0，
 BARRA_nomalize(raw_list, weight_list) --- 将序列进行BARRA模式标准化(另外允许None的出现)
 shrinkage(raw_list, upper_bound = None, lower_bound = None) --- 将序列中大于3倍标准差的部分拉回到3倍标准差
 get_half_life_list(total_length, half_life_value, start_weight = 1.0) --- 计算半衰期序列权重值
-descriptors_aaggregate_to_factor(descriptors_list, weight_list) --- 加权求和
+descriptors_aggregate_to_factor(descriptors_list, weight_list) --- 加权求和
 MA_point(raw_list, n) --- 计算MA的点，即从最后一个数开始的N个数据的平均
 moving_average(raw_list, n) --- 计算MA的序列，MA(n)表示n个数据取平均，如不足n个数的部分，则将已有的数据取平均
 NAV_normalize(original_list) --- 将序列标准化为起始项为1.0，后续比例不变的序列
@@ -301,6 +301,25 @@ def change_stock_format(origin, target, origin_list, del_unknown = 0):
             else:
                 if del_unknown == 0:
                     print 'Cannot find a proper form! ' + str(origin_list[i])
+                elif del_unknown == 1:
+                    pass
+                elif del_unknown == 2:
+                    target_list.append(np.nan)
+            i += 1
+    elif origin == "int" and target == "with_tail":
+        i = 0
+        while i < len(origin_list):
+            temp = str(origin_list[i])
+            number_of_zero = 6 - len(temp)
+            for times in range(number_of_zero):
+                temp = "0" + temp
+            if temp[0] == '6':
+                target_list.append(temp + '.SH')
+            elif temp[0] == '0' or temp[0] == '3':
+                target_list.append(temp + '.SZ')
+            else:
+                if del_unknown == 0:
+                    print 'Cannot find a proper form! ' + str(temp)
                 elif del_unknown == 1:
                     pass
                 elif del_unknown == 2:

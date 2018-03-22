@@ -17,9 +17,9 @@ import db_data_pre_treat
 import statsmodels.api as sm
 
 start_date = "20070115"
-end_date = "20171231"
-Now_Index = "all"
-factor_list = ['Beta', 'Volatility', 'liquid_MV']
+end_date = "20180320"
+Now_Index = "zz800"
+factor_list = ['Beta', 'Volatility', 'liquid_MV', 'Size']
 
 Factor_Table_Name = 'daily_stock_factors_' + Now_Index
 
@@ -54,11 +54,11 @@ for date in daily_date_list:
     this_date_components_df = xyk_common_data_processing.delete_none(this_date_components_df)
     #做回归
     volatility_sr = this_date_components_df.loc[:, 'Volatility']
-    beta_sr = this_date_components_df.loc[:, 'Beta']
-    X_np = sm.add_constant(beta_sr)
+    X_sr = this_date_components_df.loc[:, ['Beta', 'Size']]
+    X_np = sm.add_constant(X_sr)
     ols_model = sm.OLS(volatility_sr, X_np)
     results = ols_model.fit()
-    para_dict[date] = [results.params[0], results.params[1]]
+    para_dict[date] = [results.params[0], results.params[1], results.params[2]]
     daily_residual_volatility_np = results.resid
     #储存
     para_dict2[date] = [xyk_common_data_processing.weighted_mean(daily_residual_volatility_np, this_date_components_df.loc[:, 'liquid_MV'], 2, use_df = 1), pd.Series(daily_residual_volatility_np).std(ddof = 1)]
@@ -67,7 +67,8 @@ for date in daily_date_list:
     print date, 'normalizing...'
     volatility_sr = descriptor_data_dict[date].loc[:, 'Volatility']
     beta_sr = descriptor_data_dict[date].loc[:, 'Beta']
-    output_data_dict[date] = (volatility_sr - para_dict[date][1] * beta_sr - para_dict[date][0] - para_dict2[date][0]) /  para_dict2[date][1]
+    size_sr = descriptor_data_dict[date].loc[:, 'Size']
+    output_data_dict[date] = (volatility_sr - para_dict[date][2] * size_sr - para_dict[date][1] * beta_sr - para_dict[date][0] - para_dict2[date][0]) /  para_dict2[date][1]
 
 print "Begin inserting..."
 result_list = []
@@ -82,4 +83,4 @@ for i, date in enumerate(daily_date_list):
 print "Sorting..."
 result_list.sort()
 print "Inserting..."
-db_interaction.insert_attributes_commonly(Factor_Table_Name, result_list, ['stock_id', 'curr_date', 'Residual_Volatility'], ['Residual_Volatility'], batch = 100000)
+db_interaction.insert_attributes_commonly(Factor_Table_Name, result_list, ['stock_id', 'curr_date', 'Residual_Volatility'], ['Residual_Volatility'], batch = 50000)

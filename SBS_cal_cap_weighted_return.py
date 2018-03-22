@@ -15,10 +15,10 @@ import xyk_common_wind_db_interaction
 import db_data_pre_treat
 import db_interaction
 
-start_date = "20050101"
-end_date = "20171231"
+start_date = "20050930"
+end_date = "20180320"
 weighted_type = "liquid"
-index_name = "all"
+index_name = "zz800"
 
 '''
 ***获取成分股数据***

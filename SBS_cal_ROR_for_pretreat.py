@@ -16,7 +16,7 @@ import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
 start_date = "20070115"
-end_date = "20171231"
+end_date = "20180320"
 
 daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
 
@@ -38,14 +38,18 @@ for stock in hq_dict_no_suspension.keys():
                 temp_ROR = hq_dict_no_suspension[stock][i][1] / hq_dict_no_suspension[stock][i - 1][1] - 1.0
                 result_list.append([stock, hq_dict_no_suspension[stock][i - 1][0], temp_ROR])
 
-print "all"
-table_name = "daily_stock_descriptors_pretreated_all"
-db_interaction.insert_attributes_commonly(table_name, result_list, ['stock_id', 'curr_date', 'ROR'], ['ROR'], batch = 100000)
+#print "all"
+#table_name = "daily_stock_descriptors_pretreated_all"
+#db_interaction.insert_attributes_commonly(table_name, result_list, ['stock_id', 'curr_date', 'ROR'], ['ROR'], batch = 50000)
+#
+#print "hs300"
+#table_name = "daily_stock_descriptors_pretreated_hs300"
+#db_interaction.insert_attributes_commonly(table_name, result_list, ['stock_id', 'curr_date', 'ROR'], ['ROR'], batch = 50000)
+#
+#print "zz500"
+#table_name = "daily_stock_descriptors_pretreated_zz500"
+#db_interaction.insert_attributes_commonly(table_name, result_list, ['stock_id', 'curr_date', 'ROR'], ['ROR'], batch = 50000)
 
-print "hs300"
-table_name = "daily_stock_descriptors_pretreated_hs300"
-db_interaction.insert_attributes_commonly(table_name, result_list, ['stock_id', 'curr_date', 'ROR'], ['ROR'], batch = 100000)
-
-print "zz500"
-table_name = "daily_stock_descriptors_pretreated_zz500"
-db_interaction.insert_attributes_commonly(table_name, result_list, ['stock_id', 'curr_date', 'ROR'], ['ROR'], batch = 100000)
+print "zz800"
+table_name = "daily_stock_descriptors_pretreated_zz800"
+db_interaction.insert_attributes_commonly(table_name, result_list, ['stock_id', 'curr_date', 'ROR'], ['ROR'], batch = 50000)

@@ -13,6 +13,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.types import VARCHAR
 import numpy as np
 import pandas as pd
+import xyk_common_wind_db_interaction
 
 '''
 ------目录------
@@ -710,22 +711,25 @@ def get_daily_data_dict_1_key(start_date, end_date, table_name, attribute_list, 
     rows1=thbase.select(str1)
     data_dict = {}
     if date_for_key == 0:
+        daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
         for line in rows1:
             #print line
-            if not data_dict.has_key(line[0]):
-                data_dict[line[0]] = []
-            daily_data = [str(line[1].strftime('%Y%m%d'))]
-            j = 0
-            while j < len(attribute_list):
-                if line[j + 2] != None:
-                    if is_str == 1:
-                        daily_data.append(str(line[j + 2]))
+            this_date_str = str(line[1].strftime('%Y%m%d'))
+            if this_date_str in daily_date_list:
+                if not data_dict.has_key(line[0]):
+                    data_dict[line[0]] = []
+                daily_data = [this_date_str]
+                j = 0
+                while j < len(attribute_list):
+                    if line[j + 2] != None:
+                        if is_str == 1:
+                            daily_data.append(str(line[j + 2]))
+                        else:
+                            daily_data.append(float(line[j + 2]))
                     else:
-                        daily_data.append(float(line[j + 2]))
-                else:
-                    daily_data.append(None)
-                j += 1
-            data_dict[line[0]].append(daily_data)
+                        daily_data.append(None)
+                    j += 1
+                data_dict[line[0]].append(daily_data)
         if to_df != 0:
             for key in data_dict.keys():
                 data_dict[key] = pd.DataFrame(data_dict[key], columns = ['curr_date'] + attribute_list).set_index('curr_date')

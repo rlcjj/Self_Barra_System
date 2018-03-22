@@ -14,9 +14,11 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-start_date = "20050101"
-cal_start_date = "20070115"
-end_date = "20171231"
+start_date = "20151010"
+cal_start_date = "20180102"
+end_date = "20180320"
+
+After_date = 0
 
 cal_daily_date_list = xyk_common_wind_db_interaction.get_calendar(cal_start_date, end_date, 0)
 daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
@@ -27,7 +29,7 @@ SHIBOR_dict = xyk_common_wind_db_interaction.get_IBOR_dict("SHIBOR", "SHIBORON.I
 '''
 a_stock_no_st_dict = db_data_pre_treat.get_normal_stocklist_dict(start_date, end_date, year = 0, month = 6)
 total_stock_list = xyk_common_data_processing.get_all_element_from_dict(a_stock_no_st_dict)
-hq_dict = db_interaction.get_daily_data_dict_1_key(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close', 'trading_amount'], total_stock_list, 0)
+hq_dict = db_interaction.get_daily_data_dict_1_key(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close', 'trading_amount', 'all_MV'], total_stock_list, 0)
 
 stock_suspension_dict = db_data_pre_treat.get_stock_suspension_dict_by_stock(total_stock_list, start_date, end_date, sus_type = 1)
 hq_dict_no_suspension = xyk_common_data_processing.get_dict_difference(hq_dict, stock_suspension_dict, list_order = 0)
@@ -49,12 +51,12 @@ for stock in hq_dict_no_suspension.keys():
         this_start_date = hq_dict_no_suspension[stock][120][0]
         for data in hq_dict[stock]:
             if data[0] >= this_start_date and data[0] >= cal_daily_date_list[0]:
-                if data[1] != '' and data[1] != None:
-                    result_list1.append([stock, data[0], math.log(data[1])])
+                if data[4] != '' and data[4] != None:
+                    result_list1.append([stock, data[0], math.log(data[4])])
          
 '''
 ***以下为计算Momentum的3个描述量***
-***上市后有120个可交易日以上时才进行计算Short，有220个可交易日以上时才开始计算Medium，有340个可交易日以上时才开始计算Long***
+***上市后有After_date个可交易日以上时才开始计算***
 ***计算Short时使用20个交易日，计算Medium时使用120个交易日，计算Long时使用21-240个交易日；半衰期均为126***
 '''
 half_life_list = xyk_common_data_processing.get_half_life_list(20, 126)
@@ -63,9 +65,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count, 'short'
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 120:
+    if len(hq_dict_no_suspension[stock]) > After_date + 20:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 120:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 20:
                 temp_ln_ROR_list = []
                 this_ln_shibor_list = []
                 j = 0
@@ -77,7 +79,7 @@ for stock in hq_dict_no_suspension.keys():
                         this_ln_shibor_list.append(LN_SHIBOR_dict['20061008'])
                     j += 1
                 this_minus_list = xyk_common_data_processing.element_cal_between_list(temp_ln_ROR_list, this_ln_shibor_list, "-")
-                this_short_momentum_value = xyk_common_data_processing.weighted_mean(this_minus_list, half_life_list)
+                this_short_momentum_value = xyk_common_data_processing.weighted_mean(this_minus_list, half_life_list, use_df = 1)
                 result_list2.append([stock, data[0], this_short_momentum_value])
                 
 half_life_list = xyk_common_data_processing.get_half_life_list(120, 126)
@@ -86,9 +88,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count, 'medium'
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 220:
+    if len(hq_dict_no_suspension[stock]) > After_date + 120:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 220:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 120:
                 temp_ln_ROR_list = []
                 this_ln_shibor_list = []
                 j = 0
@@ -100,7 +102,7 @@ for stock in hq_dict_no_suspension.keys():
                         this_ln_shibor_list.append(LN_SHIBOR_dict['20061008'])
                     j += 1
                 this_minus_list = xyk_common_data_processing.element_cal_between_list(temp_ln_ROR_list, this_ln_shibor_list, "-")
-                this_medium_momentum_value = xyk_common_data_processing.weighted_mean(this_minus_list, half_life_list)
+                this_medium_momentum_value = xyk_common_data_processing.weighted_mean(this_minus_list, half_life_list, use_df = 1)
                 result_list3.append([stock, data[0], this_medium_momentum_value])
     
 half_life_list = xyk_common_data_processing.get_half_life_list(220, 126)
@@ -109,9 +111,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count, 'long'
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 340:
+    if len(hq_dict_no_suspension[stock]) > After_date + 240:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 340:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 240:
                 temp_ln_ROR_list = []
                 this_ln_shibor_list = []
                 j = 20
@@ -123,12 +125,12 @@ for stock in hq_dict_no_suspension.keys():
                         this_ln_shibor_list.append(LN_SHIBOR_dict['20061008'])
                     j += 1
                 this_minus_list = xyk_common_data_processing.element_cal_between_list(temp_ln_ROR_list, this_ln_shibor_list, "-")
-                this_long_momentum_value = xyk_common_data_processing.weighted_mean(this_minus_list, half_life_list)
+                this_long_momentum_value = xyk_common_data_processing.weighted_mean(this_minus_list, half_life_list, use_df = 1)
                 result_list4.append([stock, data[0], this_long_momentum_value])
                     
 '''
 ***以下为计算Volatility的2个描述量***
-***上市后有372个可交易日以上时才进行计算DASTD和CMRA***
+***上市后有After_date个可交易日以上时才进行计算DASTD和CMRA***
 ***计算DASTD时使用252个交易日，计算CMRA时使用21*12个交易日；DASTD半衰期均为42***
 '''
 half_life_list = xyk_common_data_processing.get_half_life_list(252, 42)
@@ -137,9 +139,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count, 'DASTD'
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 372:
+    if len(hq_dict_no_suspension[stock]) > After_date + 252:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 372:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 252:
                 temp_ROR_list = []
                 this_shibor_list = []
                 j = 0
@@ -155,7 +157,7 @@ for stock in hq_dict_no_suspension.keys():
                 this_treated_list = []
                 for minus_data in this_minus_list:
                     this_treated_list.append((minus_data - this_minus_mean) * (minus_data - this_minus_mean))
-                this_DASTD_value = math.sqrt(xyk_common_data_processing.weighted_mean(this_treated_list, half_life_list))
+                this_DASTD_value = math.sqrt(xyk_common_data_processing.weighted_mean(this_treated_list, half_life_list, use_df = 1))
                 result_list5.append([stock, data[0], this_DASTD_value])
 
 this_ln_shibor_list = []
@@ -168,9 +170,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count, 'CMRA'
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 372:
+    if len(hq_dict_no_suspension[stock]) > After_date + 252:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 372:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 252:
                 temp_from_last_monthly_ROR_list = []
                 j = 0
                 while j < 12:
@@ -190,9 +192,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count, '1M'
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 120:
+    if len(hq_dict_no_suspension[stock]) > After_date + 21:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 120:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 21:
                 temp_1M_list = []
                 j = 0
                 while j < 21:
@@ -207,9 +209,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count, '3M'
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 180:
+    if len(hq_dict_no_suspension[stock]) > After_date + 63:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 180:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 63:
                 temp_3M_list = []
                 j = 0
                 while j < 63:
@@ -224,9 +226,9 @@ count = 0
 for stock in hq_dict_no_suspension.keys():
     print count, '12M'
     count += 1
-    if len(hq_dict_no_suspension[stock]) > 340:
+    if len(hq_dict_no_suspension[stock]) > After_date + 252:
         for i, data in enumerate(hq_dict_no_suspension[stock]):
-            if data[0] >= cal_daily_date_list[0] and i >= 340:
+            if data[0] >= cal_daily_date_list[0] and i >= After_date + 252:
                 temp_12M_list = []
                 j = 0
                 while j < 252:

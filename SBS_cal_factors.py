@@ -16,20 +16,20 @@ import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
 start_date = "20070115"
-end_date = "20171231"
-Now_Index = "zz500"
+end_date = "20180320"
+Now_Index = "zz800"
 
 Descriptor_List = ['ETOP', 'Earnings_STG', 'MLEV', 'BLEV', 'DTOA', 'STO_1M', 'STO_3M', 'STO_12M', 'BTOP', 'EP_Fwd12M',\
                    'CashFlowYield_TTM', 'ROE', 'YOY_Profit', 'LNCAP', 'Long_Momentum', 'Medium_Momentum', 'Short_Momentum',\
-                   'DASTD', 'CMRA', 'Beta', 'HSIGMA', 'NLSIZE']
+                   'DASTD', 'CMRA', 'Beta', 'HSIGMA']
 
 Keep_Data_List = ['liquid_MV', 'close', 'ROR']
 
-Factor_List = ['Size', 'Beta', 'Momentum', 'Reversal', 'Volatility', 'NL_Size', 'Book_to_Price', 'Liquidity', 'Earnings', 'Growth', 'Leverage']
+Factor_List = ['Size', 'Beta', 'Momentum', 'Volatility', 'Book_to_Price', 'Liquidity', 'Earnings', 'Growth', 'Leverage']
 
-Factor_Weight_Dict = {'Size':[['LNCAP'], [1.0]], 'Beta':[['Beta'], [1.0]], 'Momentum':[['Long_Momentum'], [1.0]], \
-                      'Reversal':[['Short_Momentum'], [1.0]], 'Volatility':[['DASTD', 'CMRA', 'HSIGMA'], [0.74, 0.16, 0.10]], \
-                      'NL_Size':[['NLSIZE'], [1.0]], 'Book_to_Price':[['BTOP'], [1.0]], 'Liquidity':[['STO_1M', 'STO_3M', 'STO_12M'], [0.35, 0.35, 0.30]], \
+Factor_Weight_Dict = {'Size':[['LNCAP'], [1.0]], 'Beta':[['Beta'], [1.0]], 'Momentum':[['Long_Momentum', 'Medium_Momentum', 'Short_Momentum'], [0.25, 0.25, 0.5]], \
+                      'Volatility':[['DASTD', 'CMRA', 'HSIGMA'], [0.74, 0.16, 0.10]], \
+                      'Book_to_Price':[['BTOP'], [1.0]], 'Liquidity':[['STO_1M', 'STO_3M', 'STO_12M'], [0.35, 0.35, 0.30]], \
                       'Earnings':[['ETOP', 'EP_Fwd12M', 'CashFlowYield_TTM'], [0.11, 0.68, 0.21]], 'Growth':[['Earnings_STG', 'ROE', 'YOY_Profit'], [0.1, 0.5, 0.4]], \
                       'Leverage':[['MLEV', 'DTOA', 'BLEV'], [0.38, 0.35, 0.27]]}
 
@@ -93,8 +93,4 @@ for i, date in enumerate(daily_date_list):
     temp_insert_data['curr_date'] = date
     temp_insert_data.index.name = 'stock_id'
     temp_insert_data = temp_insert_data.set_index([temp_insert_data['curr_date'], temp_insert_data.index]).drop(['curr_date'], axis = 1)
-#    if i == 0:
-#        raw_data_df = temp_insert_data
-#    else:
-#        raw_data_df = pd.concat([raw_data_df, temp_insert_data])
     db_interaction.insert_df_append(Factor_Table_Name, temp_insert_data, index_name_list = ["curr_date", "stock_id"])
