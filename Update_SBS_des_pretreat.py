@@ -16,11 +16,11 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-ROR_start_date = "20180320"
-start_date = "20180321"
+ROR_start_date = "20070115"
+start_date = "20070115"
 ROR_end_date = "20180320"
 end_date = "20180321"
-Now_Index = "zz800"
+Now_Index = "dp_pool"
 nearest_fundamental_update = "20180316"
 second_fundamental_update = "20180311"
 next_fundamental_update = "20180323"
@@ -40,17 +40,17 @@ def cal_cap_weighted_return(start_date, end_date, index_name, weighted_type = "l
     daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
     
     '''
-    ***获得全部出现过的股票代码序列，用于查询行情和停牌信息***
+    ***获得全部出现过的股票代码序列，用于查询行情信息***
     '''
     total_stock_list = xyk_common_data_processing.get_all_element_from_dict(components_dict)
     
     '''
-    ***从行情序列中查询，并检索停牌信息，剔除成分股中停牌的股票***
+    ***从行情序列中查询***
     '''
     hq_dict = db_interaction.get_daily_data_dict(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close'], total_stock_list, 0)
     
     '''
-    ***计算加权的return***
+    ***计算加权的return，停牌按收益为0计算***
     '''
     weighted_return_list = []
     for ord_date, date in enumerate(daily_date_list):
@@ -369,7 +369,8 @@ def cal_unique_factors(cal_start_date, end_date, Now_Index, After_date = 0):
     result_list = []
     count = 0
     for stock in hq_dict_no_suspension.keys():
-        #print count
+        if len(cal_daily_date_list) > 10:
+            print 'unique factors', count
         count += 1
         if len(hq_dict_no_suspension[stock]) > After_date + 252:
             for i, data in enumerate(hq_dict_no_suspension[stock]):
@@ -420,6 +421,8 @@ def pretreat_no_fundamental(start_date, end_date, Now_Index):
     
     Source_Table_Name_List = ["daily_stock_descriptors_fundamental", "daily_stock_descriptors_unified", "daily_stock_descriptors_" + Now_Index + "_unique", "daily_stock_descriptors_unified"]
     
+    daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
+    
     i = 0
     while i < 5:
         print i, 'building dict...'
@@ -428,25 +431,26 @@ def pretreat_no_fundamental(start_date, end_date, Now_Index):
         elif i == 4:
             raw_data_dict_temp = db_interaction.get_daily_data_dict_1_key(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close'], date_for_key = 1, to_df = 1)
             for date in raw_data_dict.keys():
-                raw_data_dict[date] = raw_data_dict[date].merge(raw_data_dict_temp[date], how = 'outer', left_index = True, right_index = True)
+                if date in daily_date_list:
+                    raw_data_dict[date] = raw_data_dict[date].merge(raw_data_dict_temp[date], how = 'outer', left_index = True, right_index = True)
         else:
             raw_data_dict_temp = db_interaction.get_daily_data_dict_1_key(start_date, end_date, Source_Table_Name_List[i], Descriptor_List[i], date_for_key = 1, to_df = 1)
             for date in raw_data_dict.keys():
-                raw_data_dict[date] = raw_data_dict[date].merge(raw_data_dict_temp[date], how = 'outer', left_index = True, right_index = True)
+                if date in daily_date_list:
+                    raw_data_dict[date] = raw_data_dict[date].merge(raw_data_dict_temp[date], how = 'outer', left_index = True, right_index = True)
         i += 1
     
     for date in raw_data_dict.keys():
-        raw_data_dict[date]['STO_1M'] = np.log(raw_data_dict[date]['STO_1M'])
-        raw_data_dict[date]['STO_3M'] = np.log(raw_data_dict[date]['STO_3M'])
-        raw_data_dict[date]['STO_12M'] = np.log(raw_data_dict[date]['STO_12M'])
+        if date in daily_date_list:
+            raw_data_dict[date]['STO_1M'] = np.log(raw_data_dict[date]['STO_1M'])
+            raw_data_dict[date]['STO_3M'] = np.log(raw_data_dict[date]['STO_3M'])
+            raw_data_dict[date]['STO_12M'] = np.log(raw_data_dict[date]['STO_12M'])
     
     if Now_Index == "all":
         components_dict = db_data_pre_treat.get_normal_stocklist_dict(start_date, end_date, year = 0, month = 6)
     else:
         where = Now_Index + " = 1"
         components_dict = db_interaction.get_data_commonly("daily_index_components", ["stock_id"], ["curr_date"], one_to_one = 0, where = where)
-    
-    daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
     
     all_descriptor_list = descriptor_1_list + descriptor_2_list + descriptor_3_list + descriptor_4_list
     
@@ -520,7 +524,9 @@ def pretreat_fundamental(start_date, end_date, Now_Index, next_date = ""):
     Descriptor_List = [descriptor_1_list]
     
     Source_Table_Name_List = ["dp_daily_stock_descriptors_fundamental"]
-
+    
+    daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
+    
     i = 0
     while i < 2:
         print i, 'building dict...'
@@ -529,11 +535,13 @@ def pretreat_fundamental(start_date, end_date, Now_Index, next_date = ""):
         elif i == 1:
             raw_data_dict_temp = db_interaction.get_daily_data_dict_1_key(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close'], date_for_key = 1, to_df = 1)
             for date in raw_data_dict.keys():
-                raw_data_dict[date] = raw_data_dict[date].merge(raw_data_dict_temp[date], how = 'outer', left_index = True, right_index = True)
+                if date in daily_date_list:
+                    raw_data_dict[date] = raw_data_dict[date].merge(raw_data_dict_temp[date], how = 'outer', left_index = True, right_index = True)
         else:
             raw_data_dict_temp = db_interaction.get_daily_data_dict_1_key(start_date, end_date, Source_Table_Name_List[i], Descriptor_List[i], date_for_key = 1, to_df = 1)
             for date in raw_data_dict.keys():
-                raw_data_dict[date] = raw_data_dict[date].merge(raw_data_dict_temp[date], how = 'outer', left_index = True, right_index = True)
+                if date in daily_date_list:
+                    raw_data_dict[date] = raw_data_dict[date].merge(raw_data_dict_temp[date], how = 'outer', left_index = True, right_index = True)
         i += 1
     
     if Now_Index == "all":
@@ -541,8 +549,6 @@ def pretreat_fundamental(start_date, end_date, Now_Index, next_date = ""):
     else:
         where = Now_Index + " = 1"
         components_dict = db_interaction.get_data_commonly("daily_index_components", ["stock_id"], ["curr_date"], one_to_one = 0, where = where)
-    
-    daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
     
     if next_date != "":
         next_date_list = xyk_common_wind_db_interaction.get_calendar(end_date, next_date, 0)
@@ -815,7 +821,7 @@ def cal_nl_size(start_date, end_date, Now_Index):
     print "Sorting..."
     result_list.sort()
     print "Inserting..."
-    db_interaction.insert_attributes_commonly(Factor_Table_Name, result_list, ['stock_id', 'curr_date', 'NL_Size'], ['NL_Size'], batch = 100000)
+    db_interaction.insert_attributes_commonly(Factor_Table_Name, result_list, ['stock_id', 'curr_date', 'NL_Size'], ['NL_Size'], batch = 50000)
 
 def cal_residual_volatility(start_date, end_date, Now_Index):
     print "---calculating residual volatility...---"
@@ -1020,17 +1026,17 @@ def WLS(start_date, end_date, Now_Index):
     table_name = "daily_barra_factor_return"
     db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
 
-cal_cap_weighted_return(ROR_start_date, end_date, Now_Index)
-cal_unified_factors(start_date, end_date)
-cal_unique_factors(start_date, end_date, Now_Index)
-pretreat_no_fundamental(start_date, end_date, Now_Index)
-if has_new == 0:
-    if start_date < nearest_fundamental_update:
-        pretreat_fundamental(start_date, nearest_fundamental_update, Now_Index, next_date = next_fundamental_update)
-    else:
-        pass
-else:
-    pretreat_fundamental(second_fundamental_update, nearest_fundamental_update, Now_Index, next_date = next_fundamental_update)
+#cal_cap_weighted_return(ROR_start_date, end_date, Now_Index)
+#cal_unified_factors(start_date, end_date)
+#cal_unique_factors(start_date, end_date, Now_Index)
+#pretreat_no_fundamental(start_date, end_date, Now_Index)
+#if has_new == 0:
+#    if start_date < nearest_fundamental_update:
+#        pretreat_fundamental(start_date, nearest_fundamental_update, Now_Index, next_date = next_fundamental_update)
+#    else:
+#        pass
+#else:
+#    pretreat_fundamental(second_fundamental_update, nearest_fundamental_update, Now_Index, next_date = next_fundamental_update)
 cal_ROR_for_pretreat(ROR_start_date, end_date, Now_Index)
 if has_new == 0:
     cal_factors(ROR_start_date, end_date, Now_Index)

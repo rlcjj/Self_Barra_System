@@ -15,10 +15,10 @@ import xyk_common_wind_db_interaction
 import db_data_pre_treat
 import db_interaction
 
-start_date = "20050930"
-end_date = "20180320"
+start_date = "20171229"
+end_date = "20180321"
 weighted_type = "liquid"
-index_name = "zz800"
+index_name = "all"
 
 '''
 ***获取成分股数据***
@@ -32,17 +32,17 @@ else:
 daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
 
 '''
-***获得全部出现过的股票代码序列，用于查询行情和停牌信息***
+***获得全部出现过的股票代码序列，用于查询行情信息***
 '''
 total_stock_list = xyk_common_data_processing.get_all_element_from_dict(components_dict)
 
 '''
-***从行情序列中查询，并检索停牌信息，剔除成分股中停牌的股票***
+***从行情序列中查询***
 '''
 hq_dict = db_interaction.get_daily_data_dict(start_date, end_date, "daily_stock_technical", ['liquid_MV', 'close'], total_stock_list, 0)
 
 '''
-***计算加权的return***
+***计算加权的return，停牌按收益为0计算***
 '''
 weighted_return_list = []
 for ord_date, date in enumerate(daily_date_list):
