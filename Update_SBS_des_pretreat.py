@@ -16,14 +16,14 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-ROR_start_date = "20070115"
-start_date = "20070115"
-ROR_end_date = "20180320"
-end_date = "20180321"
-Now_Index = "dp_pool"
-nearest_fundamental_update = "20180316"
-second_fundamental_update = "20180311"
-next_fundamental_update = "20180323"
+ROR_start_date = "20180330"
+start_date = "20180402"
+ROR_end_date = "20180330"
+end_date = "20180402"
+Now_Index_List = ["zz800", "hs300", "zz500", "all", "dp_pool"]
+nearest_fundamental_update = "20180330"
+second_fundamental_update = "20180323"
+next_fundamental_update = "20180404"
 has_new = 0
 
 def cal_cap_weighted_return(start_date, end_date, index_name, weighted_type = "liquid"):
@@ -1026,25 +1026,29 @@ def WLS(start_date, end_date, Now_Index):
     table_name = "daily_barra_factor_return"
     db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
 
-#cal_cap_weighted_return(ROR_start_date, end_date, Now_Index)
-#cal_unified_factors(start_date, end_date)
-#cal_unique_factors(start_date, end_date, Now_Index)
-#pretreat_no_fundamental(start_date, end_date, Now_Index)
-#if has_new == 0:
-#    if start_date < nearest_fundamental_update:
-#        pretreat_fundamental(start_date, nearest_fundamental_update, Now_Index, next_date = next_fundamental_update)
-#    else:
-#        pass
-#else:
-#    pretreat_fundamental(second_fundamental_update, nearest_fundamental_update, Now_Index, next_date = next_fundamental_update)
-cal_ROR_for_pretreat(ROR_start_date, end_date, Now_Index)
-if has_new == 0:
-    cal_factors(ROR_start_date, end_date, Now_Index)
-    cal_nl_size(ROR_start_date, end_date, Now_Index)
-    cal_residual_volatility(ROR_start_date, end_date, Now_Index)
-    WLS(ROR_start_date, ROR_end_date, Now_Index)
-else:
-    cal_factors(second_fundamental_update, end_date, Now_Index)
-    cal_nl_size(second_fundamental_update, end_date, Now_Index)
-    cal_residual_volatility(second_fundamental_update, end_date, Now_Index)
-    WLS(second_fundamental_update, ROR_end_date, Now_Index)
+cal_unified_factors(start_date, end_date)
+for Now_Index in Now_Index_List:
+    print Now_Index
+    cal_cap_weighted_return(ROR_start_date, end_date, Now_Index)
+    cal_unique_factors(start_date, end_date, Now_Index)
+    pretreat_no_fundamental(start_date, end_date, Now_Index)
+    print Now_Index
+    if has_new == 0:
+        if start_date < nearest_fundamental_update:
+            pretreat_fundamental(start_date, nearest_fundamental_update, Now_Index, next_date = next_fundamental_update)
+        else:
+            pass
+    else:
+        pretreat_fundamental(second_fundamental_update, nearest_fundamental_update, Now_Index, next_date = next_fundamental_update)
+    cal_ROR_for_pretreat(ROR_start_date, end_date, Now_Index)
+    print Now_Index
+    if has_new == 0:
+        cal_factors(ROR_start_date, end_date, Now_Index)
+        cal_nl_size(ROR_start_date, end_date, Now_Index)
+        cal_residual_volatility(ROR_start_date, end_date, Now_Index)
+        WLS(ROR_start_date, ROR_end_date, Now_Index)
+    else:
+        cal_factors(second_fundamental_update, end_date, Now_Index)
+        cal_nl_size(second_fundamental_update, end_date, Now_Index)
+        cal_residual_volatility(second_fundamental_update, end_date, Now_Index)
+        WLS(second_fundamental_update, ROR_end_date, Now_Index)

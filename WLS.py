@@ -16,8 +16,8 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-start_date = "20070115"
-end_date = "20180319"
+start_date = "20171229"
+end_date = "20180330"
 factor_list = ['Book_to_Price', 'Earnings', 'Growth', 'Leverage', 'Liquidity', 'Size', 'NL_Size', 'Beta', 'Momentum', 'Residual_Volatility']
 extra_data_list = ['ROR', 'liquid_MV']
 citics_code_list = ['b101', 'b102', 'b103', 'b104', 'b105', 'b106', 'b107', 'b108', 'b109',\
@@ -148,8 +148,8 @@ for ord_date, date in enumerate(daily_date_list):
                 output_list.append([Now_Index, Now_Range, "f", citics_code_list[i - 1 - len(factor_list)], date, f_list_temp[i]])
         i += 1
 
-table_name = "daily_barra_factor_return"
-db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
+#table_name = "daily_barra_factor_return"
+#db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
 
 U_df = pd.DataFrame(U_list, index = daily_date_list)
 T_value_df = pd.DataFrame(T_value_list, index = daily_date_list, columns = ["1"] + factor_list + citics_code_list)
@@ -165,7 +165,7 @@ for i, factor in enumerate(factor_list):
         this_NAV_df = pd.DataFrame(NAV_list, index = ['start'] + daily_date_list, columns = [factor])
         NAV_df = pd.concat([NAV_df, this_NAV_df], axis = 1)
 
-writer = pd.ExcelWriter('output_' + Now_Index + '.xlsx')
+writer = pd.ExcelWriter('output_' + Now_Index + 'update.xlsx')
 f_df.to_excel(writer,'Sheet1')
 T_value_df.to_excel(writer,'Sheet2')
 NAV_df.to_excel(writer,'Sheet3')

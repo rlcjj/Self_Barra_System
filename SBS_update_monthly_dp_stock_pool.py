@@ -18,7 +18,7 @@ import xyk_common_wind_db_interaction
 '''
 ***读入CSV数据***
 '''
-csvfile = file("dp_pool.csv", 'rb')
+csvfile = file("dp_pool2.csv", 'rb')
 reader = csv.reader(csvfile)
 
 code_dict = {}
@@ -26,10 +26,11 @@ code_dict = {}
 for line in reader:
     stock_id_int = int(line[0])
     date = str(line[1])
-    if code_dict.has_key(date) == False:
-        code_dict[date] = [stock_id_int]
-    else:
-        code_dict[date].append(stock_id_int)
+    if date == "20180330":
+        if code_dict.has_key(date) == False:
+            code_dict[date] = [stock_id_int]
+        else:
+            code_dict[date].append(stock_id_int)
 
 csvfile.close()
 
