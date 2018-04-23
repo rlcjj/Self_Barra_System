@@ -16,14 +16,20 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-ROR_start_date = "20180330"
-start_date = "20180402"
-ROR_end_date = "20180330"
-end_date = "20180402"
+ROR_start_date = "20180416"
+start_date = "20180417"
+ROR_end_date = "20180417"
+end_date = "20180418"
 Now_Index_List = ["zz800", "hs300", "zz500", "all", "dp_pool"]
-nearest_fundamental_update = "20180330"
-second_fundamental_update = "20180323"
-next_fundamental_update = "20180404"
+
+#ROR_start_date = "20180416"
+#start_date = "20180417"
+#ROR_end_date = "20180417"
+#end_date = "20180418"
+#Now_Index_List = ["dp_pool2"]
+nearest_fundamental_update = "20180413"
+second_fundamental_update = "20180404"
+next_fundamental_update = "20180420"
 has_new = 0
 
 def cal_cap_weighted_return(start_date, end_date, index_name, weighted_type = "liquid"):
@@ -1026,7 +1032,7 @@ def WLS(start_date, end_date, Now_Index):
     table_name = "daily_barra_factor_return"
     db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
 
-cal_unified_factors(start_date, end_date)
+#cal_unified_factors(start_date, end_date)
 for Now_Index in Now_Index_List:
     print Now_Index
     cal_cap_weighted_return(ROR_start_date, end_date, Now_Index)

@@ -16,30 +16,30 @@ import xyk_common_wind_db_interaction
 import db_data_pre_treat
 import statsmodels.api as sm
 
-#start_date = "20070115"
-#end_date = "20171231"
-#Now_Index = "all"
-#change_factor_list = ['Book_to_Price', 'Earnings', 'Growth', 'Leverage', 'Liquidity', 'Beta', 'Momentum', 'Reversal', 'Residual_Volatility']
-#keep_value_list = ['Size', 'NL_Size', 'ROR', 'liquid_MV', 'close']
-#
-#Factor_Table_Name = 'daily_stock_factors_' + Now_Index
-#Output_Table_Name = 'daily_stock_factors_size_residual_'  + Now_Index
-#
-#daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
-#
-#'''
-#***获取成分股数据***
-#'''
-#if Now_Index == "all":
-#    components_dict = db_data_pre_treat.get_normal_stocklist_dict(start_date, end_date, year = 0, month = 6)
-#else:
-#    where = Now_Index + " = 1"
-#    components_dict = db_interaction.get_data_commonly("daily_index_components", ["stock_id"], ["curr_date"], one_to_one = 0, where = where)
-#
-#'''
-#***从因子表中获取我们需要的几列数据***
-#'''
-#descriptor_data_dict = db_interaction.get_daily_data_dict_1_key(start_date, end_date, Factor_Table_Name, change_factor_list + keep_value_list, date_for_key = 1, to_df = 1)
+start_date = "20070115"
+end_date = "20180331"
+Now_Index = "zz800"
+change_factor_list = ['Book_to_Price', 'Earnings', 'Growth', 'Leverage', 'Liquidity', 'Beta', 'Momentum', 'Residual_Volatility']
+keep_value_list = ['Size', 'NL_Size', 'ROR', 'liquid_MV', 'close']
+
+Factor_Table_Name = 'daily_stock_factors_' + Now_Index
+Output_Table_Name = 'daily_stock_factors_size_residual_'  + Now_Index
+
+daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
+
+'''
+***获取成分股数据***
+'''
+if Now_Index == "all":
+    components_dict = db_data_pre_treat.get_normal_stocklist_dict(start_date, end_date, year = 0, month = 6)
+else:
+    where = Now_Index + " = 1"
+    components_dict = db_interaction.get_data_commonly("daily_index_components", ["stock_id"], ["curr_date"], one_to_one = 0, where = where)
+
+'''
+***从因子表中获取我们需要的几列数据***
+'''
+descriptor_data_dict = db_interaction.get_daily_data_dict_1_key(start_date, end_date, Factor_Table_Name, change_factor_list + keep_value_list, date_for_key = 1, to_df = 1)
 
 '''
 ***根据Index篮子做OLS***

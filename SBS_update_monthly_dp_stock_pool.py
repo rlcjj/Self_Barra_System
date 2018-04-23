@@ -26,11 +26,10 @@ code_dict = {}
 for line in reader:
     stock_id_int = int(line[0])
     date = str(line[1])
-    if date == "20180330":
-        if code_dict.has_key(date) == False:
-            code_dict[date] = [stock_id_int]
-        else:
-            code_dict[date].append(stock_id_int)
+    if code_dict.has_key(date) == False:
+        code_dict[date] = [stock_id_int]
+    else:
+        code_dict[date].append(stock_id_int)
 
 csvfile.close()
 
@@ -63,4 +62,4 @@ output_list.sort()
 ***输出到数据库***
 '''
 table_name = "daily_index_components"
-db_interaction.insert_attributes_commonly(table_name, output_list, ['stock_id', 'curr_date', 'dp_pool'], ['dp_pool'], batch = 50000)
+db_interaction.insert_attributes_commonly(table_name, output_list, ['stock_id', 'curr_date', 'dp_pool2'], ['dp_pool2'], batch = 50000)

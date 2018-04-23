@@ -16,16 +16,18 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
+#start_date = "20171229"
+#end_date = "20180416"
 start_date = "20070115"
-end_date = "20180409"
+end_date = "20180418"
 factor_list = ['Book_to_Price', 'Earnings', 'Growth', 'Leverage', 'Liquidity', 'Size', 'NL_Size', 'Beta', 'Momentum', 'Residual_Volatility']
 extra_data_list = ['ROR', 'liquid_MV']
 citics_code_list = ['b101', 'b102', 'b103', 'b104', 'b105', 'b106', 'b107', 'b108', 'b109',\
                     'b10a', 'b10b', 'b10c', 'b10d', 'b10e', 'b10f', 'b10g', 'b10h', 'b10i',\
                     'b10j', 'b10k', 'b10l', 'b10m', 'b10n', 'b10o', 'b10p', 'b10q', 'b10r',\
                     'b10s', 'b10t']
-Now_Index = "zz500"
-Now_Range = "zz500"
+Now_Index = "dp_pool2"
+Now_Range = "dp_pool2"
 
 '''
 ***获取每日指数成分股和全部A股的代码***
@@ -36,7 +38,9 @@ else:
     where = Now_Range + " = 1"
     components_dict = db_interaction.get_data_commonly("daily_index_components", ["stock_id"], ["curr_date"], one_to_one = 0, where = where)
     
-daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
+all_daily_date_list = xyk_common_wind_db_interaction.get_calendar(start_date, end_date, 0)
+daily_date_list = all_daily_date_list[:-1]
+index_date_list = all_daily_date_list[1:]
 a_stock_no_st_dict = db_data_pre_treat.get_a_stock_no_st_dict(start_date, end_date, 0, 6, 1, 0)
 total_stock_list = xyk_common_data_processing.get_all_element_from_dict(a_stock_no_st_dict)
 
@@ -148,25 +152,25 @@ for ord_date, date in enumerate(daily_date_list):
                 output_list.append([Now_Index, Now_Range, "f", citics_code_list[i - 1 - len(factor_list)], date, f_list_temp[i]])
         i += 1
 
-table_name = "daily_barra_factor_return"
-db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
+#table_name = "daily_barra_factor_return"
+#db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
 
-#U_df = pd.DataFrame(U_list, index = daily_date_list)
-#T_value_df = pd.DataFrame(T_value_list, index = daily_date_list, columns = ["1"] + factor_list + citics_code_list)
-#R_squared_df = pd.DataFrame(R_squared, index = daily_date_list)
-#R_squared_adj_df = pd.DataFrame(R_squared_adj, index = daily_date_list)
-#f_df = pd.DataFrame(f_list, index = daily_date_list, columns = ["1"] + factor_list + citics_code_list)
-#
-#for i, factor in enumerate(factor_list):
-#    NAV_list = xyk_common_data_processing.from_ROR_to_NAV(f_df.loc[:, factor])
-#    if i == 0:
-#        NAV_df = pd.DataFrame(NAV_list, index = ['start'] + daily_date_list, columns = [factor])
-#    else:
-#        this_NAV_df = pd.DataFrame(NAV_list, index = ['start'] + daily_date_list, columns = [factor])
-#        NAV_df = pd.concat([NAV_df, this_NAV_df], axis = 1)
-#
-#writer = pd.ExcelWriter('output_' + Now_Index + 'update.xlsx')
-#f_df.to_excel(writer,'Sheet1')
-#T_value_df.to_excel(writer,'Sheet2')
-#NAV_df.to_excel(writer,'Sheet3')
-#writer.save()
+U_df = pd.DataFrame(U_list, index = index_date_list)
+T_value_df = pd.DataFrame(T_value_list, index = index_date_list, columns = ["1"] + factor_list + citics_code_list)
+R_squared_df = pd.DataFrame(R_squared, index = index_date_list)
+R_squared_adj_df = pd.DataFrame(R_squared_adj, index = index_date_list)
+f_df = pd.DataFrame(f_list, index = index_date_list, columns = ["1"] + factor_list + citics_code_list)
+
+for i, factor in enumerate(factor_list):
+    NAV_list = xyk_common_data_processing.from_ROR_to_NAV(f_df.loc[:, factor])
+    if i == 0:
+        NAV_df = pd.DataFrame(NAV_list, index = ['start'] + index_date_list, columns = [factor])
+    else:
+        this_NAV_df = pd.DataFrame(NAV_list, index = ['start'] + index_date_list, columns = [factor])
+        NAV_df = pd.concat([NAV_df, this_NAV_df], axis = 1)
+
+writer = pd.ExcelWriter('output_' + Now_Index + 'update.xlsx')
+f_df.to_excel(writer,'Sheet1')
+T_value_df.to_excel(writer,'Sheet2')
+NAV_df.to_excel(writer,'Sheet3')
+writer.save()
