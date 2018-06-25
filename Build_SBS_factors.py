@@ -16,24 +16,22 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-#ROR_start_date = "20180613"
-#start_date = "20180614"
-ROR_start_date = "20180615"
-start_date = "20180618"
-ROR_end_date = "20180621"
-end_date = "20180622"
-Now_Index_List = ["hs300", "zz500", "all", "dp_pool", "dp_pool2", "dp_pool3", "dp_pool4", "dp_pool5", "dp_pool6", "dp_pool7", "dp_pool8", "dp_pool9"]
-#Now_Index_List = ["zz800"]
+#ROR_start_date = "20180409"
+#start_date = "20180410"
+#ROR_end_date = "20180413"
+#end_date = "20180416"
+#Now_Index_List = ["zz800", "hs300", "zz500", "all", "dp_pool"]
 
-#ROR_start_date = "20180416"
-#start_date = "20180417"
-#ROR_end_date = "20180417"
-#end_date = "20180418"
-#Now_Index_List = ["dp_pool2"]
-nearest_fundamental_update = "20180622"
-second_fundamental_update = "20180615"
-next_fundamental_update = "20180629"
-has_new = 1
+index_cal_begin_date = "20050201"
+ROR_start_date = "20180524"
+start_date = "20180524"
+ROR_end_date = "20180607"
+end_date = "20180608"
+Now_Index_List = ["dp_pool9"]
+nearest_fundamental_update = "20180608"
+second_fundamental_update = "20180608"
+next_fundamental_update = "20180615"
+has_new = 0
 
 def cal_cap_weighted_return(start_date, end_date, index_name, weighted_type = "liquid"):
     print "---calculating cap weighted returns...---"
@@ -383,7 +381,7 @@ def cal_unique_factors(cal_start_date, end_date, Now_Index, After_date = 0):
         count += 1
         if len(hq_dict_no_suspension[stock]) > After_date + 252:
             for i, data in enumerate(hq_dict_no_suspension[stock]):
-                if data[0] >= cal_daily_date_list[0] and i >= After_date + 252:
+                if data[0] >= cal_daily_date_list[0] and i >= After_date + 252 and hq_dict_no_suspension[stock][i - 252][0] > index_cal_begin_date:
                     temp_ROR_list = []
                     this_shibor_list = []
                     this_index_ROR_list = []
@@ -1035,10 +1033,10 @@ def WLS(start_date, end_date, Now_Index):
     table_name = "daily_barra_factor_return"
     db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
 
-#cal_unified_factors(start_date, end_date)
+#cal_unified_factors("20180322", end_date)
 for Now_Index in Now_Index_List:
     print Now_Index
-    cal_cap_weighted_return(ROR_start_date, end_date, Now_Index)
+    cal_cap_weighted_return(index_cal_begin_date, end_date, Now_Index)
     cal_unique_factors(start_date, end_date, Now_Index)
     pretreat_no_fundamental(start_date, end_date, Now_Index)
     print Now_Index
@@ -1055,9 +1053,9 @@ for Now_Index in Now_Index_List:
         cal_factors(ROR_start_date, end_date, Now_Index)
         cal_nl_size(ROR_start_date, end_date, Now_Index)
         cal_residual_volatility(ROR_start_date, end_date, Now_Index)
-        WLS(ROR_start_date, ROR_end_date, Now_Index)
+        #WLS(ROR_start_date, ROR_end_date, Now_Index)
     else:
         cal_factors(second_fundamental_update, end_date, Now_Index)
         cal_nl_size(second_fundamental_update, end_date, Now_Index)
         cal_residual_volatility(second_fundamental_update, end_date, Now_Index)
-        WLS(second_fundamental_update, ROR_end_date, Now_Index)
+        #WLS(second_fundamental_update, ROR_end_date, Now_Index)

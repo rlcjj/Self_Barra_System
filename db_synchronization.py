@@ -11,11 +11,11 @@ from sqlalchemy import create_engine
 from datetime import datetime
 import gc
 
-table_name_list = ["daily_stock_descriptors_zz500_unique", "daily_stock_descriptors_pretreated_zz500", "daily_stock_factors_zz500"]
+table_name_list = ["daily_stock_factors_dp_pool9"]
 
-key_list_list = [['stock_id', 'curr_date'], ['stock_id', 'curr_date'], ['stock_id', 'curr_date']]
+key_list_list = [['stock_id', 'curr_date']]
 
-engine = create_engine('mysql+mysqldb://root:312215@192.168.2.106:3306/style_rotation')
+engine = create_engine('mysql+mysqldb://root:312215@192.168.0.101:3306/style_rotation')
 engine2 = create_engine('mysql+mysqldb://mouhaima:312215@localhost:3306/style_rotation')
 
 i = 0

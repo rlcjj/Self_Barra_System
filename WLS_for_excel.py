@@ -16,18 +16,18 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-#start_date = "20171229"
-#end_date = "20180416"
-start_date = "20070115"
-end_date = "20180418"
+start_date = "20171229"
+end_date = "20180622"
+#start_date = "20070115"
+#end_date = "20180418"
 factor_list = ['Book_to_Price', 'Earnings', 'Growth', 'Leverage', 'Liquidity', 'Size', 'NL_Size', 'Beta', 'Momentum', 'Residual_Volatility']
 extra_data_list = ['ROR', 'liquid_MV']
 citics_code_list = ['b101', 'b102', 'b103', 'b104', 'b105', 'b106', 'b107', 'b108', 'b109',\
                     'b10a', 'b10b', 'b10c', 'b10d', 'b10e', 'b10f', 'b10g', 'b10h', 'b10i',\
                     'b10j', 'b10k', 'b10l', 'b10m', 'b10n', 'b10o', 'b10p', 'b10q', 'b10r',\
                     'b10s', 'b10t']
-Now_Index = "dp_pool2"
-Now_Range = "dp_pool2"
+Now_Index = "zz800"
+Now_Range = "zz800"
 
 '''
 ***获取每日指数成分股和全部A股的代码***
