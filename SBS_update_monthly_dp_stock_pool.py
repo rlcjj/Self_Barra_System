@@ -16,7 +16,7 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 
 pool_name = "dp_pool9"
-start_date = "20000000"
+start_date = "20180801"
 
 '''
 ***读入CSV数据***

@@ -16,9 +16,11 @@ import xyk_common_wind_db_interaction
 import db_data_pre_treat
 import statsmodels.api as sm
 
-start_date = "20070115"
-end_date = "20180331"
-Now_Index = "zz800"
+#start_date = "20070115"
+#end_date = "20180331"
+start_date = "20180401"
+end_date = "20180803"
+Now_Index = "all"
 change_factor_list = ['Book_to_Price', 'Earnings', 'Growth', 'Leverage', 'Liquidity', 'Beta', 'Momentum', 'Residual_Volatility']
 keep_value_list = ['Size', 'NL_Size', 'ROR', 'liquid_MV', 'close']
 

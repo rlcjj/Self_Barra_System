@@ -15,7 +15,7 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import csv
 
-data = pd.read_table('data20180622.csv', sep=',')
+data = pd.read_table('data20180928.csv', sep=',')
 
 data['StockCode'] = xyk_common_data_processing.change_stock_format("int", "with_tail", data.loc[:, 'StockCode'], 0)
 

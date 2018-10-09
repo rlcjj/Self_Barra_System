@@ -16,23 +16,26 @@ import xyk_common_data_processing
 import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
-#ROR_start_date = "20180613"
-#start_date = "20180614"
-ROR_start_date = "20180615"
-start_date = "20180618"
-ROR_end_date = "20180621"
-end_date = "20180622"
-Now_Index_List = ["hs300", "zz500", "all", "dp_pool", "dp_pool2", "dp_pool3", "dp_pool4", "dp_pool5", "dp_pool6", "dp_pool7", "dp_pool8", "dp_pool9"]
+#ROR_start_date = "20151231"
+#start_date = "20151231"
+ROR_start_date = "20180921"
+start_date = "20180925"
+ROR_end_date = "20180927"
+end_date = "20180928"
+Now_Index_List = ["hs300", "zz500", "zz1000", "all", "dp_pool", "dp_pool2", "dp_pool3", "dp_pool4", "dp_pool5", "dp_pool6", "dp_pool7", "dp_pool8", "dp_pool9"]
 #Now_Index_List = ["zz800"]
+#Now_Index_List = ["zz1000"]
 
 #ROR_start_date = "20180416"
 #start_date = "20180417"
 #ROR_end_date = "20180417"
+
 #end_date = "20180418"
 #Now_Index_List = ["dp_pool2"]
-nearest_fundamental_update = "20180622"
-second_fundamental_update = "20180615"
-next_fundamental_update = "20180629"
+nearest_fundamental_update = "20180928"
+second_fundamental_update = "20180921"
+#second_fundamental_update = "20151231"
+next_fundamental_update = "20181012"
 has_new = 1
 
 def cal_cap_weighted_return(start_date, end_date, index_name, weighted_type = "liquid"):
@@ -389,26 +392,28 @@ def cal_unique_factors(cal_start_date, end_date, Now_Index, After_date = 0):
                     this_index_ROR_list = []
                     j = 0
                     while j < 252:
-                        temp_ROR_list.append(hq_dict_no_suspension[stock][i - j][2] / hq_dict_no_suspension[stock][i - j - 1][2] - 1.0)
-                        if SHIBOR_dict.has_key(hq_dict_no_suspension[stock][i - j][0]) == True:
-                            this_shibor_list.append(SHIBOR_dict[hq_dict_no_suspension[stock][i - j][0]])
-                        else:
-                            this_shibor_list.append(SHIBOR_dict['20061008'])
-                        this_index_ROR_list.append(index_return_dict[(Now_Index, hq_dict_no_suspension[stock][i - j][0])])
+                        if index_return_dict.has_key((Now_Index, hq_dict_no_suspension[stock][i - j][0])) == True:
+                            temp_ROR_list.append(hq_dict_no_suspension[stock][i - j][2] / hq_dict_no_suspension[stock][i - j - 1][2] - 1.0)
+                            if SHIBOR_dict.has_key(hq_dict_no_suspension[stock][i - j][0]) == True:
+                                this_shibor_list.append(SHIBOR_dict[hq_dict_no_suspension[stock][i - j][0]])
+                            else:
+                                this_shibor_list.append(SHIBOR_dict['20061008'])
+                            this_index_ROR_list.append(index_return_dict[(Now_Index, hq_dict_no_suspension[stock][i - j][0])])
                         j += 1
-                    this_minus_list = xyk_common_data_processing.element_cal_between_list(temp_ROR_list, this_shibor_list, "-")
-                    X = sm.add_constant(this_index_ROR_list)
-                    Y = this_minus_list
-                    wls_model = sm.WLS(Y, X, weights = half_life_list)
-                    results = wls_model.fit()
-                    this_beta = float(results.params[1])
-                    resid_list = results.resid
-                    this_resid_mean = sum(resid_list) / float(len(resid_list))
-                    this_treated_list = []
-                    for resid_data in resid_list:
-                        this_treated_list.append((resid_data - this_resid_mean) * (resid_data - this_resid_mean))
-                    this_HSIGMA = math.sqrt(xyk_common_data_processing.weighted_mean(this_treated_list, half_life_list, use_df = 1))
-                    result_list.append([stock, data[0], this_beta, this_HSIGMA])
+                    if len(temp_ROR_list) > 100:
+                        this_minus_list = xyk_common_data_processing.element_cal_between_list(temp_ROR_list, this_shibor_list, "-")
+                        X = sm.add_constant(this_index_ROR_list)
+                        Y = this_minus_list
+                        wls_model = sm.WLS(Y, X, weights = half_life_list[:len(temp_ROR_list)])
+                        results = wls_model.fit()
+                        this_beta = float(results.params[1])
+                        resid_list = results.resid
+                        this_resid_mean = sum(resid_list) / float(len(resid_list))
+                        this_treated_list = []
+                        for resid_data in resid_list:
+                            this_treated_list.append((resid_data - this_resid_mean) * (resid_data - this_resid_mean))
+                        this_HSIGMA = math.sqrt(xyk_common_data_processing.weighted_mean(this_treated_list, half_life_list[:len(temp_ROR_list)], use_df = 1))
+                        result_list.append([stock, data[0], this_beta, this_HSIGMA])
                         
     '''
     ***输出至DB***
@@ -1034,6 +1039,8 @@ def WLS(start_date, end_date, Now_Index):
     
     table_name = "daily_barra_factor_return"
     db_interaction.insert_attributes_commonly(table_name, output_list, ['data_table', 'data_range', 'type', 'object', 'curr_date', 'value'], ['value'], batch = 50000)
+
+
 
 #cal_unified_factors(start_date, end_date)
 for Now_Index in Now_Index_List:

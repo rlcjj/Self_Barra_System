@@ -17,7 +17,7 @@ import xyk_common_wind_db_interaction
 import db_data_pre_treat
 
 start_date = "20171229"
-end_date = "20180622"
+end_date = "20180928"
 #start_date = "20070115"
 #end_date = "20180418"
 factor_list = ['Book_to_Price', 'Earnings', 'Growth', 'Leverage', 'Liquidity', 'Size', 'NL_Size', 'Beta', 'Momentum', 'Residual_Volatility']
@@ -164,9 +164,9 @@ f_df = pd.DataFrame(f_list, index = index_date_list, columns = ["1"] + factor_li
 for i, factor in enumerate(factor_list):
     NAV_list = xyk_common_data_processing.from_ROR_to_NAV(f_df.loc[:, factor])
     if i == 0:
-        NAV_df = pd.DataFrame(NAV_list, index = ['start'] + index_date_list, columns = [factor])
+        NAV_df = pd.DataFrame(NAV_list, index = [start_date] + index_date_list, columns = [factor])
     else:
-        this_NAV_df = pd.DataFrame(NAV_list, index = ['start'] + index_date_list, columns = [factor])
+        this_NAV_df = pd.DataFrame(NAV_list, index = [start_date] + index_date_list, columns = [factor])
         NAV_df = pd.concat([NAV_df, this_NAV_df], axis = 1)
 
 writer = pd.ExcelWriter('output_' + Now_Index + 'update.xlsx')
